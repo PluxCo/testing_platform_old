@@ -55,5 +55,4 @@ socket.on("question_info", function (data) {
         datable.classList.remove("placeholder", "col-5");
     });
 
-    console.log(data);
 })

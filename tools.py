@@ -1,3 +1,4 @@
+import enum
 import pickle
 import os
 
@@ -33,3 +34,13 @@ class Settings(dict):
 
     def add_update_handler(self, handler):
         self._update_handlers.append(handler)
+
+
+class WeekDays(enum.Enum):
+    Monday = 0
+    Tuesday = 1
+    Wednesday = 2
+    Thursday = 3
+    Friday = 4
+    Saturday = 5
+    Sunday = 6

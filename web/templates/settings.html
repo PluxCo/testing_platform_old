@@ -1,87 +1,149 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="container-sm">
+    <div class="container justify-content-center mb-5">
         <h1>Settings</h1>
         <div class="row">
-            <h3>Person groups</h3>
-            <div class="col">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th scope="col">#</th>
-                        <th scope="col">Label</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for g in groups %}
-                        <tr>
-                            <th scope="col">{{ g.id }}</th>
-                            <th scope="col">{{ g.name }}</th>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+            <div class="col col-md-2">
+                <div class="nav flex-column nav-pills me-3" id="v-pills-settings-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link active" id="v-pills-groups-tab" data-bs-toggle="pill"
+                            data-bs-target="#v-pills-groups" type="button" role="tab" aria-controls="v-pills-groups"
+                            aria-selected="true">Groups
+                    </button>
+                    <button class="nav-link" id="v-pills-telegram-tab" data-bs-toggle="pill"
+                            data-bs-target="#v-pills-telegram" type="button" role="tab" aria-controls="v-pills-telegram"
+                            aria-selected="false">Telegram
+                    </button>
+                    <button class="nav-link" id="v-pills-schedule-tab" data-bs-toggle="pill"
+                            data-bs-target="#v-pills-schedule" type="button" role="tab" aria-controls="v-pills-schedule"
+                            aria-selected="false">Schedule
+                    </button>
+                    <button class="nav-link" id="v-pills-session-tab" data-bs-toggle="pill"
+                            data-bs-target="#v-pills-session" type="button" role="tab" aria-controls="v-pills-session"
+                            aria-selected="false">Session
+                    </button>
+                </div>
             </div>
             <div class="col">
-                <form method="POST" action="">
-                    {{ create_group_form.csrf_token }}
-                    <div class="mb-3">
-                        {{ create_group_form.name.label(class_="form-label") }}
-                        {{ create_group_form.name(class_="form-control") }}
-                    </div>
-                    {% for field, error in create_group_form.errors.items() %}
-                        <div class="alert alert-warning">
-                            {{ "\n".join(error) }}
+                <div class="tab-content p-5" id="v-pills-tabContent">
+                    <div class="tab-pane fade show active" id="v-pills-groups" role="tabpanel"
+                         aria-labelledby="v-pills-groups-tab" tabindex="0">
+                        <div class="row">
+                            <h3>Groups of people</h3>
+                            <div class="col">
+                                <table class="table">
+                                    <thead>
+                                    <tr>
+                                        <th scope="col">#</th>
+                                        <th scope="col">Label</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {% for g in groups %}
+                                        <tr>
+                                            <th scope="col">{{ g.id }}</th>
+                                            <th scope="col">{{ g.name }}</th>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col">
+                                <form method="POST" action="">
+                                    {{ create_group_form.csrf_token }}
+                                    <div class="mb-3">
+                                        {{ create_group_form.name.label(class_="form-label") }}
+                                        {{ create_group_form.name(class_="form-control") }}
+                                    </div>
+                                    {% for field, error in create_group_form.errors.items() %}
+                                        <div class="alert alert-warning">
+                                            {{ "\n".join(error) }}
+                                        </div>
+                                    {% endfor %}
+                                    {{ create_group_form.create_group(class_="btn btn-success float-end") }}
+                                </form>
+                            </div>
                         </div>
-                    {% endfor %}
-                    {{ create_group_form.create_group(class_="btn btn-success float-end") }}
-                </form>
+                    </div>
+                    <div class="tab-pane fade" id="v-pills-telegram" role="tabpanel"
+                         aria-labelledby="v-pills-telegram-tab"
+                         tabindex="0">
+                        <div class="row">
+                            <h3>Telegram</h3>
+                            <form method="POST" action="">
+                                {{ tg_settings_form.csrf_token }}
+                                <div class="mb-3">
+                                    {{ tg_settings_form.tg_pin.label(class_="form-label") }}
+                                    {{ tg_settings_form.tg_pin(class_="form-control") }}
+                                </div>
+                                {% for field, error in tg_settings_form.errors.items() %}
+                                    <div class="alert alert-warning">
+                                        {{ "\n".join(error) }}
+                                    </div>
+                                {% endfor %}
+                                {{ tg_settings_form.save_tg(class_="btn btn-success float-end") }}
+                            </form>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="v-pills-schedule" role="tabpanel"
+                         aria-labelledby="v-pills-schedule-tab"
+                         tabindex="0">
+                        <div class="row">
+                            <h3>Schedule</h3>
+                            <form method="POST" action="">
+                                {{ schedule_settings_form.csrf_token }}
+                                <div class="mb-3">
+                                    {{ schedule_settings_form.time_period.label(class_="form-label") }}
+                                    {{ schedule_settings_form.time_period(class_="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ schedule_settings_form.week_days.label(class_="form-label") }}
+                                    {{ schedule_settings_form.week_days(class_="form-control selectpicker") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ schedule_settings_form.from_time.label(class_="form-label") }}
+                                    {{ schedule_settings_form.from_time(class_="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ schedule_settings_form.to_time.label(class_="form-label") }}
+                                    {{ schedule_settings_form.to_time(class_="form-control") }}
+                                </div>
+                                {% for field, error in schedule_settings_form.errors.items() %}
+                                    <div class="alert alert-warning">
+                                        {{ "\n".join(error) }}
+                                    </div>
+                                {% endfor %}
+                                {{ schedule_settings_form.save_schedule(class_="btn btn-success float-end") }}
+                            </form>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="v-pills-session" role="tabpanel"
+                         aria-labelledby="v-pills-session-tab"
+                         tabindex="0">
+                        <div class="row">
+                            <h3>Session</h3>
+                            <form method="POST" action="">
+                                {{ session_settings_form.csrf_token }}
+                                <div class="mb-3">
+                                    {{ session_settings_form.max_time.label(class_="form-label") }}
+                                    {{ session_settings_form.max_time(class_="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ session_settings_form.max_questions.label(class_="form-label") }}
+                                    {{ session_settings_form.max_questions(class_="form-control") }}
+                                </div>
+                                {% for field, error in session_settings_form.errors.items() %}
+                                    <div class="alert alert-warning">
+                                        {{ "\n".join(error) }}
+                                    </div>
+                                {% endfor %}
+                                {{ session_settings_form.save_session_settings(class_="btn btn-success float-end") }}
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="row">
-            <h3>Telegram</h3>
-            <form method="POST" action="">
-                {{ tg_settings_form.csrf_token }}
-                <div class="mb-3">
-                    {{ tg_settings_form.tg_pin.label(class_="form-label") }}
-                    {{ tg_settings_form.tg_pin(class_="form-control") }}
-                </div>
-                {% for field, error in tg_settings_form.errors.items() %}
-                    <div class="alert alert-warning">
-                        {{ "\n".join(error) }}
-                    </div>
-                {% endfor %}
-                {{ tg_settings_form.save_tg(class_="btn btn-success float-end") }}
-            </form>
-        </div>
-        <div class="row">
-            <h3>Schedule</h3>
-            <form method="POST" action="">
-                {{ schedule_settings_form.csrf_token }}
-                <div class="mb-3">
-                    {{ schedule_settings_form.time_period.label(class_="form-label") }}
-                    {{ schedule_settings_form.time_period(class_="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ schedule_settings_form.week_days.label(class_="form-label") }}
-                    {{ schedule_settings_form.week_days(class_="form-control selectpicker") }}
-                </div>
-                <div class="mb-3">
-                    {{ schedule_settings_form.from_time.label(class_="form-label") }}
-                    {{ schedule_settings_form.from_time(class_="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ schedule_settings_form.to_time.label(class_="form-label") }}
-                    {{ schedule_settings_form.to_time(class_="form-control") }}
-                </div>
-                {% for field, error in schedule_settings_form.errors.items() %}
-                    <div class="alert alert-warning">
-                        {{ "\n".join(error) }}
-                    </div>
-                {% endfor %}
-                {{ schedule_settings_form.save_schedule(class_="btn btn-success float-end") }}
-            </form>
-        </div>
-        </div>
+
+    </div>
 {% endblock %}

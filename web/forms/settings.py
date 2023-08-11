@@ -6,7 +6,7 @@ from wtforms.widgets import TextInput
 
 from ._ext import BasePrefixedForm
 
-from schedule import WeekDays
+from tools import WeekDays
 
 
 class TimeDeltaField(StringField):
@@ -71,3 +71,10 @@ class ScheduleSettingsForm(BasePrefixedForm):
     def validate_time_period(self, field):
         if field.data.total_seconds() < 30:
             raise ValidationError("Time delta should be at least 30 seconds")
+
+
+class SessionSettingsForm(BasePrefixedForm):
+    max_time = TimeDeltaField("Session time", validators=[DataRequired()])
+    max_questions = IntegerField("Questions in the session", validators=[DataRequired()])
+
+    save_session_settings = SubmitField("Save")

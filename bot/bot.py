@@ -12,10 +12,12 @@ from models.questions import Question, QuestionAnswer, AnswerState
 from models.users import Person, PersonGroup, PersonGroupAssociation
 from tools import Settings
 import random
+from .generators import Session
 
 bot = telebot.TeleBot(os.environ['TGTOKEN'])
 people = dict()
 target_levels = dict()
+sessions = dict()
 stickers = {"right_answer": ["CAACAgIAAxkBAAKlemTKcX143oNSqGVlHIjpmf5aWzRBAAJKFwACerrwSw3OVyhI-ZjLLwQ",
                              "CAACAgIAAxkBAAKmFWTKqiMrZzmS3yHPHN3nAAHUbElf3gACgRMAAvop0En6hsvCGJL_oy8E",
                              "CAACAgIAAxkBAAKlfGTKcYgpLL0FuHVCcRa_3cQBqnfJAAI0EgACEoP5S_q_MUdvvcoCLwQ",
@@ -183,22 +185,41 @@ def select_groups(call: CallbackQuery):
 
 # первыйй ответ дня, пять правильых ответов подряд ачивкки
 
-def send_question(person: Person, answer: QuestionAnswer):
-    markup = InlineKeyboardMarkup()
-    options = json.loads(answer.question.options)
-    question_text = answer.question.text
-    buttons = []
-    for answer_index in range(len(options)):
-        question_text += '\n' + str(answer_index + 1) + '. ' + options[answer_index]
-        buttons.append(InlineKeyboardButton(answer_index + 1, callback_data='answer_' + str(answer.id) + '_' +
-                                                                            str(answer_index + 1)))
-    markup.add(*buttons, InlineKeyboardButton('Не знаю:(', callback_data='answer_' + str(answer.id) + '_0', ),
-               row_width=len(buttons))
 
-    try:
-        bot.send_message(person.tg_id, question_text, reply_markup=markup)
-    except Exception as e:
-        pass
+def create_session(person: Person):
+    session = Session(person, Settings()["max_time"], Settings()["max_questions"])
+    sessions[person.tg_id] = session
+    session.generate_questions()
+    send_question(person)
+
+
+def send_question(person: Person):
+    answer = sessions[person.tg_id].next_question()
+    if answer:
+        with db_session.create_session() as db:
+            answer = db.merge(answer)
+
+            answer.state = AnswerState.TRANSFERRED
+            db.commit()
+
+            markup = InlineKeyboardMarkup()
+            options = json.loads(answer.question.options)
+            question_text = answer.question.text
+
+        buttons = []
+        for answer_index in range(len(options)):
+            question_text += '\n' + str(answer_index + 1) + '. ' + options[answer_index]
+            buttons.append(InlineKeyboardButton(answer_index + 1, callback_data='answer_' + str(answer.id) + '_' +
+                                                                                str(answer_index + 1)))
+        markup.add(*buttons, InlineKeyboardButton('Не знаю:(', callback_data='answer_' + str(answer.id) + '_0', ),
+                   row_width=len(buttons))
+
+        try:
+            bot.send_message(person.tg_id, question_text, reply_markup=markup)
+        except Exception as e:
+            pass
+    else:
+        bot.send_message(person.tg_id, "Ты умничка, увидимся позже;)")
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('answer'))
@@ -233,6 +254,9 @@ def check_answer(call: CallbackQuery):
             cur_answer.state = AnswerState.ANSWERED
             cur_answer.answer_time = datetime.datetime.now()
             db.commit()
+
+        person = db.scalar(select(Person).where(Person.tg_id == call.from_user.id))
+        send_question(person)
 
 
 def start_bot():

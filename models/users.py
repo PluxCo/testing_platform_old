@@ -12,7 +12,7 @@ class PersonGroupAssociation(SqlAlchemyBase):
 
     person_id: Mapped[int] = mapped_column(ForeignKey("persons.id"), primary_key=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("person_groups.id"), primary_key=True)
-    target_level: Mapped[int]
+    target_level: Mapped[int] = mapped_column(default=1)
 
 
 class PersonGroup(SqlAlchemyBase, SerializerMixin):

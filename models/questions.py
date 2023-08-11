@@ -1,6 +1,6 @@
 import datetime
 import enum
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, backref, mapped_column, Mapped
@@ -28,12 +28,12 @@ class Question(SqlAlchemyBase, SerializerMixin):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     text: Mapped[str]
-    subject: Mapped[str]
+    subject: Mapped[Optional[str]]
     options: Mapped[str]
     answer: Mapped[int]
     groups: Mapped[List["PersonGroup"]] = relationship(secondary="question_to_group")
     level: Mapped[int]
-    article_url: Mapped[str]
+    article_url: Mapped[Optional[str]]
 
 
 class QuestionAnswer(SqlAlchemyBase, SerializerMixin):
@@ -43,8 +43,8 @@ class QuestionAnswer(SqlAlchemyBase, SerializerMixin):
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     question: Mapped["Question"] = relationship(backref="answers")
     person_id: Mapped[int] = mapped_column(ForeignKey("persons.id"))
-    person_answer: Mapped[int]
-    answer_time: Mapped[datetime.datetime]
+    person_answer: Mapped[Optional[int]]
+    answer_time: Mapped[Optional[datetime.datetime]]
     ask_time: Mapped[datetime.datetime] = mapped_column()
     state: Mapped[AnswerState]
 

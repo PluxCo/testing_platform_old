@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/images/favicon-16x16.png">
     <link rel="manifest" href="/static/images/site.webmanifest">
-    <link rel="stylesheet" href="/static/styles.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9"
           crossorigin="anonymous">
@@ -30,6 +29,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='base.js') }}"></script>
     {% block prescripts %}{% endblock %}
 </head>
 <body>
@@ -54,6 +55,28 @@
                     <a class="nav-link" href="/logout">Logout</a>
                 </div>
             {% endif %}
+            <li class="navbar-nav nav-item dropdown">
+            <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
+              <i class="bi bi-circle-half"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" style="min-width: 1rem;" aria-labelledby="bd-theme-text">
+              <li>
+                <button type="button" class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
+                  <i class="bi bi-brightness-high"></i>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
+                  <i class="bi bi-moon"></i>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="dropdown-item active" data-bs-theme-value="auto" aria-pressed="true">
+                  <i class="bi bi-circle-half"></i>
+                </button>
+              </li>
+            </ul>
+          </li>
         </div>
     </div>
 </nav>
