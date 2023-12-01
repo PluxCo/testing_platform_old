@@ -40,6 +40,8 @@ services:
     build:
       context: ./questions
       dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
     depends_on:
       - fusionauth
     environment:
