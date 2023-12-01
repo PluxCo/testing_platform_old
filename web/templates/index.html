@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block prescripts %}
+    <script>
+        let id_to_name = {{ id_to_name | safe}};
+    </script>
+    <script type="module" src="{{ url_for('static', filename='index_charts.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="container d-flex">
+        <div class="row">
+            <h2>Timeline</h2>
+            <div class="chart-container">
+                <canvas id="TimeLine"></canvas>
+            </div>
+            <h2>People</h2>
+            <div class="col-sm">
+                <ul id="PeopleList" class="list-group">
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-2"></span>
+                        <span class="placeholder col-3"></span>
+                        <span class="placeholder col-3"></span>
+                    </li>
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-3"></span>
+                        <span class="placeholder col-4"></span>
+                    </li>
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-1"></span>
+                        <span class="placeholder col-6"></span>
+                        <span class="placeholder col-3"></span>
+                    </li>
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-2"></span>
+                        <span class="placeholder col-2"></span>
+                    </li>
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-4"></span>
+                        <span class="placeholder col-2"></span>
+                        <span class="placeholder col-4"></span>
+                    </li>
+                    <li class="list-group-item placeholder-glow" aria-hidden="true">
+                        <span class="placeholder col-3"></span>
+                        <span class="placeholder col-4"></span>
+                        <span class="placeholder col-2"></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-sm">
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

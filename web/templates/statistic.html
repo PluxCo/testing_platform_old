@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block prescripts %}
+    <script src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
+    <script>
+        config = {
+            timeline: {{ timeline | tojson | safe }},
+            bar_data: {{ bar_data | safe }}
+        }
+    </script>
+    <script type="module" src="{{ url_for('static', filename='charts.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="modal fade" tabindex="-1" id="question_modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Question Timeline</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body mx-3">
+                    <dl class="row">
+                        <dt>Question</dt>
+                        <dd class="mx-3 datable q_text"></dd>
+                        <dt>Level</dt>
+                        <dd class="mx-3 datable q_level"></dd>
+                        <dt>Groups</dt>
+                        <dd class="mx-3 datable q_groups"></dd>
+                        <dt>Answer</dt>
+                        <dd class="mx-3 datable q_correct"></dd>
+                    </dl>
+                    <div class="table table-responsive" id="modal-table">
+                        <table class="table align-middle mb-0" id="modal-inner-table">
+                            <thead>
+                            <tr class="sticky-top">
+                                <th>Person answer</th>
+                                <th>Ask time</th>
+                                <th>Answer time</th>
+                            </tr>
+                            </thead>
+                            <tbody class="q_answers datable">
+
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row">
+                        <div class="collapse" id="plan_form">
+                            <form method="POST" action="" class="">
+                                {{ plan_form.csrf_token }}
+                                <div class="d-flex gap-1">
+                                    {{ plan_form.question_id(class_="form-control d-none") }}
+                                    {{ plan_form.person_id(class_="form-control d-none") }}
+
+                                    {{ plan_form.ask_time.label(class_="form-label") }}
+                                    {{ plan_form.ask_time(class_="form-control") }}
+
+                                    {{ plan_form.plan(class_="btn btn-success float-end") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#plan_form" aria-expanded="false">
+                        Plan question
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-lg">
+        {% if plan_form.errors.items() %}
+            <div class="row">
+                {% for field, error in plan_form.errors.items() %}
+                    <div class="alert alert-warning">
+                        {{ field }}: {{ "\n".join(error) }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="d-flex gap-3 mt-3">
+            <h2 class="{{ "text-secondary" if person.is_paused else "" }}" id="person"
+                data-person="{{ person.id }}">{{ person.full_name }}</h2>
+            <form method="POST" action="">
+                {{ pause_form.csrf_token }}
+                {% for field, error in pause_form.errors.items() %}
+                    <div class="alert alert-warning">
+                        {{ "\n".join(error) }}
+                    </div>
+                {% endfor %}
+                {{ pause_form.pause(class_="btn btn-outline-secondary " + ("d-none" if person.is_paused else "")) }}
+                {{ pause_form.unpause(class_="btn btn-outline-primary " + ("d-none" if not person.is_paused else "")) }}
+            </form>
+        </div>
+        <div class="row mt-4">
+            <div class="nav nav-pills me-3 ms-5" id="v-pills-tab" role="tablist"
+                 aria-orientation="vertical">
+                <button class="nav-link active" id="v-pills-home-tab" data-bs-toggle="pill"
+                        data-bs-target="#v-pills-home" type="button" role="tab" aria-controls="v-pills-home"
+                        aria-selected="true">Level Bars
+                </button>
+                <button class="nav-link" id="v-pills-profile-tab" data-bs-toggle="pill"
+                        data-bs-target="#v-pills-profile" type="button" role="tab"
+                        aria-controls="v-pills-profile" aria-selected="false">Heatmap
+                </button>
+            </div>
+            <div class="col-sm">
+                <div class="tab-content" id="v-pills-tabContent-statistics">
+                    <div class="tab-pane fade show active" id="v-pills-home" role="tabpanel"
+                         aria-labelledby="v-pills-home-tab" tabindex="0">
+                        <div class="chart-container">
+                            <canvas id="QuestionChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="v-pills-profile" role="tabpanel"
+                         aria-labelledby="v-pills-profile-tab" tabindex="0">
+                        <div class="chart-container">
+                            <canvas id="Heatmap"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm">
+                <div class="chart-container">
+                    <canvas id="Timeline"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row table-responsive rounded mb-3 ms-5" id="timeline">
+            <table class="table m-0 table-bordered">
+                <tr class="d-flex">
+                    {% for answer in person.answers|reverse %}
+                        {% if answer.state == AnswerState.ANSWERED and answer.person_answer == answer.question.answer %}
+                            {% set a_bg = "table-success" %}
+                            {% set a_label = "Correct" %}
+                        {% elif answer.state == AnswerState.ANSWERED and answer.person_answer != answer.question.answer %}
+                            {% set a_bg = "table-warning" %}
+                            {% set a_label = "Incorrect" %}
+                        {% elif answer.state == AnswerState.TRANSFERRED %}
+                            {% set a_bg = "table-info" %}
+                            {% set a_label = "Skipped" %}
+                        {% elif answer.state == AnswerState.NOT_ANSWERED %}
+                            {% set a_bg = "table-secondary" %}
+                            {% set a_label = "Planned" %}
+                        {% endif %}
+
+                        <td class="text-center {{ a_bg }} question_stat" data-question="{{ answer.question.id }}">
+                        </td>
+                    {% endfor %}
+                </tr>
+            </table>
+        </div>
+        <h3>Subjects</h3>
+        <div class="row">
+            <div class="accordion" id="groups_stat">
+                {% for name, correct, answered, all, answers in subjects %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed d-block" type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#subj_{{ loop.index }}" aria-expanded="false"
+                                    aria-controls="subj_{{ loop.index }}">
+                                <span>{{ name }}</span>
+                                <span class="float-end mx-5 fs-5">
+                                    <span class="text-success">{{ correct }}</span> /
+                                    <span class="text-info">{{ answered }}</span> /
+                                    <span class="text-secondary">{{ all }}</span>
+                                </span>
+                            </button>
+                        </h2>
+                        <div id="subj_{{ loop.index }}" class="accordion-collapse collapse"
+                             data-bs-parent="#groups_stat">
+                            <div class="accordion-body table-responsive">
+                                <table class="table align-middle">
+                                    <caption>Last answers</caption>
+                                    <tr>
+                                        {% for question, state, correct, incorrect in answers %}
+                                            <td class="text-center col-1">{{ question.text }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    <tr>
+                                        {% for question, state, q_correct, q_incorrect in answers %}
+                                            {% set td_ststus = "" %}
+                                            {% if state == "CORRECT" %}
+                                                {% set td_ststus = "table-success" %}
+                                            {% elif state == "INCORRECT" %}
+                                                {% set td_ststus = "table-warning" %}
+                                            {% elif state == "IGNORED" %}
+                                                {% set td_ststus = "table-info" %}
+                                            {% elif state == "NOT_ANSWERED" %}
+                                                {% set td_ststus = "table-secondary" %}
+                                            {% endif %}
+
+                                            <td class="text-center {{ td_ststus }} question_stat"
+                                                data-question="{{ question.id }}">
+                                                <span class="text-success">{{ q_correct }}</span> /
+                                                <span class="text-danger">{{ q_incorrect }}</span>
+                                            </td>
+                                        {% endfor %}
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+{% endblock %}
