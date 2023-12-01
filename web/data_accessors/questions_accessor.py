@@ -46,3 +46,16 @@ class QuestionsDAO:
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host)).json()
         for q in resp:
             yield QuestionsDAO._construct(q)
+
+    @staticmethod
+    def create_question(question: Question):
+        req = {
+            "text": question.text,
+            "subject": question.subject,
+            "options": question.options,
+            "answer": question.answer,
+            "groups": question.groups,
+            "level": question.level,
+            "article_url": question.article
+        }
+        resp = requests.post(QuestionsDAO.__resource.format(QuestionsDAO.__host), json=req)
