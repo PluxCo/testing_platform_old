@@ -15,7 +15,7 @@ update_data_parser.add_argument('options', type=str, required=False, action='app
 update_data_parser.add_argument('answer', type=str, required=False)
 update_data_parser.add_argument('groups', type=str, required=False, action='append')
 update_data_parser.add_argument('level', type=int, required=False)
-update_data_parser.add_argument('article_url', type=int, required=False)
+update_data_parser.add_argument('article_url', type=str, required=False)
 
 # Request parser for creating a new question
 create_data_parser = reqparse.RequestParser()
@@ -25,7 +25,7 @@ create_data_parser.add_argument('options', type=str, required=True, action='appe
 create_data_parser.add_argument('answer', type=str, required=True)
 create_data_parser.add_argument('groups', type=str, required=True, action='append')
 create_data_parser.add_argument('level', type=int, required=True)
-create_data_parser.add_argument('article_url', type=int, required=False)
+create_data_parser.add_argument('article_url', type=str, required=False)
 
 
 class QuestionResource(Resource):

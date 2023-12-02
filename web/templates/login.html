@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg">
+    <div class="row">
+        <div class="col-12 col-lg-6 offset-lg-3">
+            <h2>Auth</h2>
+            <form method="POST" action="">
+                {{ form.csrf_token }}
+                <div class="mb-3">
+                    {{ form.passwd.label(class_="form-label") }}
+                    {{ form.passwd(class_="form-control") }}
+                </div>
+                {% if error_msg != None %}
+                <div class="alert alert-warning">{{error_msg}}</div>
+                {% endif %}
+                <button type="submit" name="accept_btn" class="btn btn-success float-end">Sign in</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

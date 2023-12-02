@@ -20,4 +20,4 @@ if __name__ == '__main__':
 
     Schedule(lambda x: 0).from_settings().start()
 
-    flask_app.run(debug=False, port=3000)
+    flask_app.run(host="0.0.0.0", debug=False, port=3000)
