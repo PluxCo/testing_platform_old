@@ -1,0 +1,85 @@
+.chart-container {
+    height: 20rem;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+#modal-table {
+    max-height: 300px;
+    border-radius: 10px;
+}
+
+.modal-content {
+    background: rgba(var(--bs-body-bg-rgb), 0.75);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(6.5px);
+    -webkit-backdrop-filter: blur(6.5px);
+    border-radius: 10px;
+    border: 1px solid rgba(var(--bs-body-bg-rgb), 0.2);
+}
+
+#v-pills-tabContent {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(6.5px);
+    border-radius: 10px;
+    border: 1px solid rgba(var(--bs-body-bg), 0.2);
+}
+
+.modal-backdrop {
+    opacity: 0.1 !important;
+}
+
+#timeline {
+    direction: rtl;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-y: scroll;
+    opacity: 0.8;
+}
+
+#timeline::-webkit-scrollbar {
+    display: none;
+}
+
+#timeline td {
+    width: 3rem;
+    height: 1.5rem;
+}
+
+.chart-container {
+    height: 20rem;
+    padding-left: 3rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+#PeopleList {
+    padding-left: 3rem;
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+}
+
+.error-container {
+    text-align: center;
+    margin-top: 10%;
+    padding: 30px;
+}
+
+.error-code {
+    font-size: 150px;
+    font-weight: bold;
+    color: #343a40;
+}
+
+.error-message {
+    font-size: 24px;
+    color: #6c757d;
+    margin-top: 10px;
+}
+
+.back-link {
+    margin-top: 20px;
+}
+
