@@ -1,6 +1,6 @@
 from flask_restful import Resource, reqparse
 
-from telegram.bot.bot import send_messages
+from bot.bot import send_messages
 
 post_message_parser = reqparse.RequestParser()
 post_message_parser.add_argument('messages', type=dict, required=True, action='append')

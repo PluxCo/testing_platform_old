@@ -1,6 +1,7 @@
 import enum
 import json
 import os
+import sys
 
 import requests
 from flask_restful import Resource, reqparse
@@ -56,7 +57,7 @@ class TelegramConnector(ConnectorInterface):
                 # Prepare the message for sending to TelegramService
                 message = {
                     "user_id": current_question.person_id,
-                    "type": "WITH_BUTTONS",
+                    "type": 1,
                     "data": {
                         "text": current_question.question.text,
                         "buttons": ["Не знаю"] + json.loads(current_question.question.options)
@@ -65,8 +66,12 @@ class TelegramConnector(ConnectorInterface):
                 request["messages"].append(message)
                 message_relation.append((session, current_question))
 
+        if not request["messages"]:
+            return
+
         # Send messages to TelegramService
         resp = requests.post(f"{self.TG_API}/message", json=request)
+        print(resp, resp.text, file=sys.stderr)
 
         # Map message IDs to session-question-answer tuples
         for i, message_id in enumerate(resp.json()["message_ids"]):

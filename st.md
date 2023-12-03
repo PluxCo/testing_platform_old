@@ -17,6 +17,7 @@ classDiagram
         + GET()
         + GET(question_id)
         + POST(body)
+        + DELETE(question_id)
     }
     class answer {
         + id: int

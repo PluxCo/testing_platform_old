@@ -1,6 +1,6 @@
 import datetime
 
-from api import app as flask_app
+from api.api import app as flask_app
 from models import db_session
 from schedule.schedule import Schedule
 from tools import Settings

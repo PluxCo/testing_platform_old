@@ -1,4 +1,5 @@
 import datetime
+import os
 import time
 from threading import Thread
 
@@ -22,7 +23,7 @@ class Schedule(Thread):
 
         self.previous_call = None
 
-        self.connector = TelegramConnector("http://localhost:3000/webhook/")
+        self.connector = TelegramConnector(os.getenv("QUESTIONS_URL") + "/webhook/")
 
     def from_settings(self):
         self._every = Settings()['time_period']

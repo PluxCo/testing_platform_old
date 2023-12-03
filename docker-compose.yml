@@ -33,7 +33,7 @@ services:
       FUSIONAUTH_APP_URL: http://fusionauth:9011
     restart: unless-stopped
     ports:
-      - 9011:9011
+      - "9011:9011"
     volumes:
       - fusionauth_config:/usr/local/fusionauth/config
   questions:
@@ -44,14 +44,49 @@ services:
       - "3000:3000"
     depends_on:
       - fusionauth
+      - telegram
     environment:
       FUSIONAUTH_DOMAIN: http://fusionauth:9011
-      FUSIONAUTH_TOKEN: ${FUSIONAUTH_TOKEN}
-      TELEGRAM_API: ${TELEGRAM_API}
+      FUSIONAUTH_TOKEN: ${QUESTIONS_FUSIONAUTH_TOKEN}
+      TELEGRAM_API: http://telegram:3000
+      QUESTIONS_URL: http://questions:3000
+
+
     volumes:
       - q_data:/app/data
+  telegram:
+    build:
+      context: ./telegram
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    depends_on:
+      - fusionauth
+    environment:
+      FUSIONAUTH_DOMAIN: http://fusionauth:9011
+      FUSIONAUTH_TOKEN: ${TELEGRAM_FUSIONAUTH_TOKEN}
+      TG_TOKEN: ${TG_TOKEN}
+
+    volumes:
+      - tg_data:/app/data
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3002:5000"
+    depends_on:
+      - fusionauth
+    environment:
+      FUSIONAUTH_HOST: http://fusionauth:9011
+      FUSIONAUTH_TOKEN: ${WEB_FUSIONAUTH_TOKEN}
+      QUESTIONS_URL: http://questions:3000
+    volumes:
+      - web_data:/app/data
 
 volumes:
   db_data:
   fusionauth_config:
   q_data:
+  tg_data:
+  web_data:

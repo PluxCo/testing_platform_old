@@ -1,6 +1,6 @@
 import os
-
 import random
+import sys
 from threading import Thread
 
 import requests
@@ -16,7 +16,7 @@ from models.message import Message as MessageModel
 from models.user import User
 from tools import Settings
 
-bot = telebot.TeleBot(os.environ['TGTOKEN'])
+bot = telebot.TeleBot(os.environ['TG_TOKEN'])
 people = dict()
 
 stickers = {"right_answer": ["CAACAgIAAxkBAAKlemTKcX143oNSqGVlHIjpmf5aWzRBAAJKFwACerrwSw3OVyhI-ZjLLwQ",
@@ -210,10 +210,8 @@ def send_messages(messages, webhook):
             users_ids[user.auth_id] = user.tg_id
 
     for message in messages:
-        user_id, reply_to, message_type, data = message["user_id"], message["reply_to"], MessageType(message["type"]), \
-            message["data"]
-        if reply_to == "null":
-            reply_to = None
+        user_id, reply_to, message_type, data = (message["user_id"], message.get("reply_to"),
+                                                 MessageType(message["type"]), message["data"])
         if str(user_id) not in users_ids.keys():
             ids.append(None)
             continue
@@ -223,7 +221,6 @@ def send_messages(messages, webhook):
         # sending simple message
         if message_type == MessageType.SIMPLE:
             id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to).message_id
-
 
         # sending message with buttons
         elif message_type == MessageType.WITH_BUTTONS:
