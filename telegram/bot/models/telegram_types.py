@@ -8,6 +8,15 @@ class MessageType(enum.Enum):
     MOTIVATION = 2
 
 
+class AnswerType(enum.Enum):
+    """
+    Enumeration representing different types of answers.
+    """
+    BUTTON = 0
+    MESSAGE = 1
+    REPLY = 2
+
+
 class Person:
     def __init__(self):
         self.full_name = None

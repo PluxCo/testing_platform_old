@@ -9,7 +9,7 @@ from requests import post, get
 from sqlalchemy import select
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 
-from bot.models.telegram_types import MessageType
+from bot.models.telegram_types import MessageType, AnswerType
 from bot.models.telegram_types import Person
 from models import db_session
 from models.message import Message as MessageModel
@@ -193,9 +193,6 @@ def select_groups(call: CallbackQuery):
     bot.edit_message_reply_markup(call.from_user.id, call.message.id, reply_markup=groups_markup)
 
 
-# первыйй ответ дня, пять правильых ответов подряд ачивкки
-
-
 # TODO Webhook process
 
 def send_messages(messages, webhook):
@@ -218,6 +215,7 @@ def send_messages(messages, webhook):
         current_tg_id = users_ids[str(user_id)]
         tg_ids.append(current_tg_id)
         id = None
+
         # sending simple message
         if message_type == MessageType.SIMPLE:
             id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to).message_id
@@ -241,8 +239,6 @@ def send_messages(messages, webhook):
 
         ids.append(id)
 
-    r = post(webhook, json={"message_ids": ids})
-
     with db_session.create_session() as db:
         for i in range(len(ids)):
             if ids[i] is not None:
@@ -264,9 +260,10 @@ def handling_button_answers(call: CallbackQuery):
         if webhook is not None:
             try:
                 r = requests.post(webhook.webhook,
-                                  json={"user_id": db_person.auth_id, "type": MessageType.WITH_BUTTONS.value,
-                                        "data": {"message_id": call.from_user.id,
+                                  json={"user_id": db_person.auth_id, "type": AnswerType.BUTTON.value,
+                                        "data": {"message_id": call.message.id,
                                                  "button_id": button_id}})
+                bot.edit_message_reply_markup(call.from_user.id, call.message.id)
             except Exception as e:
                 print(e)
 
