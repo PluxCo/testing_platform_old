@@ -92,7 +92,28 @@ class TelegramConnector(ConnectorInterface):
         match data_type:
             case AnswerType.BUTTON:
                 session, question_answer = self.alive_sessions.pop(data["message_id"])
-                session.register_answer(question_answer, data["button_id"])
+                registered_answer = session.register_answer(question_answer, data["button_id"])
+                if (registered_answer.person_answer == registered_answer.question.answer):
+                    request = {"webhook": self.webhook,
+                               "messages": [{
+                                   "user_id": registered_answer.person_id,
+                                   "type": 0,
+                                   "data": {
+                                       "text": "Ответ верный!"
+                                   }
+                               }]}
+                    requests.post(f"{self.TG_API}/message", json=request)
+                else:
+                    request = {"webhook": self.webhook,
+                               "messages": [{
+                                   "user_id": registered_answer.person_id,
+                                   "type": 0,
+                                   "data": {
+                                       "text": "Ответ неверный ;("
+                                   }
+                               }]}
+                    requests.post(f"{self.TG_API}/message", json=request)
+
             case AnswerType.REPLY:
                 # Handle REPLY type if needed in the future
                 pass

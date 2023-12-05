@@ -153,14 +153,7 @@ class StatRandomGenerator(GeneratorInterface):
                                                    QuestionAnswer.question_id == question.id))
 
                     periods_count = (datetime.datetime.now() - first_answer.ask_time) / Settings()["time_period"]
-
-                    # Old query
-                    # max_target_level = db.scalar(select(func.max(PersonGroupAssociation.target_level)).
-                    #                              where(PersonGroupAssociation.person_id == person.id,
-                    #                                    PersonGroupAssociation.group_id.in_(
-                    #                                        q.id for q in question.groups)))
-
-                    max_target_level = max(gl for pg, gl in person.groups if pg in question.groups)
+                    max_target_level = max(gl for pg, gl in person.groups if pg in [x.group_id for x in question.groups])
 
                     p = (datetime.datetime.now() - last_correct_or_ignored.ask_time).total_seconds() / correct_count
                     p *= np.abs(np.cos(np.pi * np.log2(periods_count + 4))) ** (
@@ -281,3 +274,5 @@ class Session:
                 question_answer.state = AnswerState.ANSWERED
                 question_answer.answer_time = datetime.datetime.now()
                 db.commit()
+                db.refresh(question_answer)
+            return question_answer
