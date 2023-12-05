@@ -263,9 +263,12 @@ def handling_button_answers(call: CallbackQuery):
                                   json={"user_id": db_person.auth_id, "type": AnswerType.BUTTON.value,
                                         "data": {"message_id": call.message.id,
                                                  "button_id": button_id}})
-                bot.edit_message_reply_markup(call.from_user.id, call.message.id)
+                r = r.json()
+                if bool(r["clear_buttons"]):
+                    bot.edit_message_reply_markup(call.from_user.id, call.message.id)
+
             except Exception as e:
-                print(e)
+                bot.edit_message_reply_markup(call.from_user.id, call.message.id)
 
 
 def start_bot():
