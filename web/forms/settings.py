@@ -6,8 +6,6 @@ from wtforms.widgets import TextInput
 
 from ._ext import BasePrefixedForm
 
-from tools import WeekDays
-
 
 class TimeDeltaField(StringField):
     def _value(self):
@@ -55,13 +53,13 @@ class TelegramSettingsForm(BasePrefixedForm):
 
 class ScheduleSettingsForm(BasePrefixedForm):
     time_period = TimeDeltaField("Period", validators=[DataRequired()])
-    week_days = SelectMultipleField("Week days", choices=[(WeekDays.Monday.value, "Monday"),
-                                                          (WeekDays.Tuesday.value, "Tuesday"),
-                                                          (WeekDays.Wednesday.value, "Wednesday"),
-                                                          (WeekDays.Thursday.value, "Thursday"),
-                                                          (WeekDays.Friday.value, "Friday"),
-                                                          (WeekDays.Saturday.value, "Saturday"),
-                                                          (WeekDays.Sunday.value, "Sunday")],
+    week_days = SelectMultipleField("Week days", choices=[(0, "Monday"),
+                                                          (1, "Tuesday"),
+                                                          (2, "Wednesday"),
+                                                          (3, "Thursday"),
+                                                          (4, "Friday"),
+                                                          (5, "Saturday"),
+                                                          (6, "Sunday")],
                                     coerce=int)
     from_time = TimeField("From", validators=[DataRequired()])
     to_time = TimeField("To", validators=[DataRequired()])

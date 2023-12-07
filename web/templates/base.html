@@ -50,33 +50,30 @@
                     <a class="nav-link" href="/settings">Settings</a>
                 </li>
             </ul>
-            {% if current_user.is_authenticated %}
-                <div class="ms-auto nav navbar-nav nav-item">
-                    <a class="nav-link" href="/logout">Logout</a>
-                </div>
-            {% endif %}
             <li class="navbar-nav nav-item dropdown">
-            <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
-              <i class="bi bi-circle-half"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" style="min-width: 1rem;" aria-labelledby="bd-theme-text">
-              <li>
-                <button type="button" class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
-                  <i class="bi bi-brightness-high"></i>
+                <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false"
+                        data-bs-toggle="dropdown" data-bs-display="static">
+                    <i class="bi bi-circle-half"></i>
                 </button>
-              </li>
-              <li>
-                <button type="button" class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
-                  <i class="bi bi-moon"></i>
-                </button>
-              </li>
-              <li>
-                <button type="button" class="dropdown-item active" data-bs-theme-value="auto" aria-pressed="true">
-                  <i class="bi bi-circle-half"></i>
-                </button>
-              </li>
-            </ul>
-          </li>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 1rem;" aria-labelledby="bd-theme-text">
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
+                            <i class="bi bi-brightness-high"></i>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
+                            <i class="bi bi-moon"></i>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item active" data-bs-theme-value="auto"
+                                aria-pressed="true">
+                            <i class="bi bi-circle-half"></i>
+                        </button>
+                    </li>
+                </ul>
+            </li>
         </div>
     </div>
 </nav>
