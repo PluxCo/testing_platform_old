@@ -75,7 +75,7 @@ class QuestionsDAO:
             "groups": question.groups,
             "level": question.level,
             "article_url": question.article,
-            "type": question.type
+            "type": question.type.value
         }
 
         resp = requests.post(QuestionsDAO.__resource.format(QuestionsDAO.__host), json=req)

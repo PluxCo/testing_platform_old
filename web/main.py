@@ -5,7 +5,7 @@ from flask import Flask, render_template, jsonify, request, redirect
 from flask_socketio import SocketIO
 
 from data_accessors.auth_accessor import GroupsDAO, Group
-from data_accessors.questions_accessor import QuestionsDAO, Question
+from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
@@ -84,7 +84,8 @@ def questions_page():
                                 answer=create_question_form.answer.data,
                                 groups=selected_groups,
                                 level=create_question_form.level.data,
-                                article=create_question_form.article.data)
+                                article=create_question_form.article.data,
+                                q_type=QuestionType.TEST)
 
         QuestionsDAO.create_question(new_question)
 
