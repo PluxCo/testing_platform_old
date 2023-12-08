@@ -6,7 +6,7 @@ from flask import Flask, render_template, jsonify, request, redirect
 from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
-from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType
+from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType, StatisticsDAO, AnswerRecordDAO
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
@@ -23,7 +23,8 @@ QuestionSettingsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000")
 TgSettingsDAO.set_host(os.getenv("TELEGRAM_URL", "http://localhost:3001"))
 GroupsDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
 PersonDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
-
+AnswerRecordDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
+StatisticsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 
 @app.route("/questions_ajax")
 def questions_ajax():
@@ -181,7 +182,11 @@ def settings_page():
 
 @app.route("/")
 def main_page():
-    return render_template("index.html", id_to_name=json.dumps([], ensure_ascii=False), title="Tests")
+    persons = PersonDAO.get_all_people()
+    position_to_name = {}
+    for i, person in enumerate(persons):
+        position_to_name[i] = person.full_name
+    return render_template("index.html", id_to_name=json.dumps(position_to_name, ensure_ascii=False), title="Tests")
 
 
 @app.errorhandler(404)
@@ -202,12 +207,35 @@ def login_error(e):
 @socketio.on('index_connected')
 def people_list():
     persons = PersonDAO.get_all_people()
+    short_stats = StatisticsDAO.get_short_statistics()
     for person in persons:
         emit('peopleList', {"person": {"id": person.id, "full_name": person.full_name},
-                            "correct_count": 0,
-                            "answered_count": 0,
-                            "questions_count": 0})
+                            **short_stats[person.id]})
         socketio.sleep(0)
+
+@socketio.on('index_connected_timeline')
+def timeline():
+    persons = PersonDAO.get_all_people()
+    timeline_correct = []
+    timeline_incorrect = []
+    id_to_position = {}
+    for i, person in enumerate(persons):
+        id_to_position[person.id] = i
+    all_answers = AnswerRecordDAO.get_all_records()
+
+    for answer in all_answers:
+        if answer.answer_time:
+            if answer.points:
+                timeline_correct.append((answer.answer_time.timestamp() * 1000, id_to_position[answer.person_id], 5))
+            else:
+                timeline_incorrect.append((answer.answer_time.timestamp() * 1000, id_to_position[answer.person_id], 3))
+
+    config = {
+        "timeline_data_correct": [{"x": x, "y": y, "r": r} for x, y, r in timeline_correct],
+        "timeline_data_incorrect": [{"x": x, "y": y, "r": r} for x, y, r in timeline_incorrect],
+    }
+
+    emit('timeline', json.dumps(config))
 
 
 if __name__ == "__main__":
