@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -93,6 +94,41 @@ def questions_page():
                                                   subject=create_question_form.subject.data,
                                                   article=create_question_form.article.data)
         create_question_form.groups.choices = groups
+
+    if import_question_form.import_btn.data and import_question_form.validate():
+        active_tab = "IMPORT"
+
+        selected_groups = [g_id for g_id in import_question_form.groups.data]
+
+        new_questions = []
+
+        try:
+            for record in json.loads(import_question_form.import_data.data):
+                if record["answer"] not in record["options"]:
+                    import_question_form.import_data.errors.append(
+                        f"Answer '{record['answer']}' wasn't found in options")
+                    break
+
+                answer = record["options"].index(record["answer"]) + 1
+
+                new_questions.append(Question(q_id=-1,
+                                              text=record["question"],
+                                              subject=import_question_form.subject.data,
+                                              options=record["options"],
+                                              groups=selected_groups,
+                                              answer=answer,
+                                              level=record["difficulty"],
+                                              article=import_question_form.article.data,
+                                              q_type=QuestionType.TEST))
+            else:
+                for question in new_questions:
+                    QuestionsDAO.create_question(question)
+
+                import_question_form = ImportQuestionForm(formdata=None,
+                                                          groups=import_question_form.groups.data)
+                import_question_form.groups.choices = groups
+        except (json.decoder.JSONDecodeError, KeyError) as e:
+            import_question_form.import_data.errors.append("Decode error: {}".format(e))
 
     return render_template("question.html",
                            active_tab=active_tab,
