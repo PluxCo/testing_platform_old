@@ -3,14 +3,16 @@ import logging
 import os
 
 from flask import Flask, render_template, jsonify, request, redirect
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 
-from data_accessors.auth_accessor import GroupsDAO, Group
+from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
 from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm
+
+logging.basicConfig(level="DEBUG")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
@@ -20,6 +22,7 @@ QuestionsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 QuestionSettingsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 TgSettingsDAO.set_host(os.getenv("TELEGRAM_URL", "http://localhost:3001"))
 GroupsDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
+PersonDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
 
 
 @app.route("/questions_ajax")
@@ -176,6 +179,11 @@ def settings_page():
                            title="Settings")
 
 
+@app.route("/")
+def main_page():
+    return render_template("index.html", id_to_name=json.dumps([], ensure_ascii=False), title="Tests")
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
@@ -189,6 +197,17 @@ def internal_error(e):
 @app.errorhandler(401)
 def login_error(e):
     return render_template('401.html'), 401
+
+
+@socketio.on('index_connected')
+def people_list():
+    persons = PersonDAO.get_all_people()
+    for person in persons:
+        emit('peopleList', {"person": {"id": person.id, "full_name": person.full_name},
+                            "correct_count": 0,
+                            "answered_count": 0,
+                            "questions_count": 0})
+        socketio.sleep(0)
 
 
 if __name__ == "__main__":
