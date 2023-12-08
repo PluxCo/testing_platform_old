@@ -6,6 +6,7 @@ from flask_socketio import SocketIO
 from data_accessors.auth_accessor import GroupsDAO
 from data_accessors.questions_accessor import QuestionsDAO, Question
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
+from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm
 
@@ -15,6 +16,7 @@ socketio = SocketIO(app)
 
 QuestionsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 QuestionSettingsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
+TgSettingsDAO.set_host(os.getenv("TELEGRAM_URL", "http://localhost:3001"))
 GroupsDAO.set_host(os.getenv("FUSIONAUTH_HOST"), os.getenv("FUSIONAUTH_TOKEN"))
 
 
@@ -95,19 +97,19 @@ def questions_page():
 
 @app.route("/settings", methods=["POST", "GET"])
 def settings_page():
+    q_settings = QuestionSettingsDAO.get_settings()
+    tg_settings = TgSettingsDAO.get_settings()
+
     create_group_form = CreateGroupForm()
-    tg_settings_form = TelegramSettingsForm(data={})
-    stg = QuestionSettingsDAO.get_settings()
-    schedule_settings_form = ScheduleSettingsForm(time_period=stg.time_period, week_days=stg.week_days,
-                                                  from_time=stg.from_time, to_time=stg.to_time)
+    tg_settings_form = TelegramSettingsForm(tg_pin=tg_settings.pin)
+    schedule_settings_form = ScheduleSettingsForm(time_period=q_settings.time_period, week_days=q_settings.week_days,
+                                                  from_time=q_settings.from_time, to_time=q_settings.to_time)
 
+    if tg_settings_form.save_tg.data and tg_settings_form.validate():
+        settings = TgSettings(tg_settings_form.tg_pin.data)
 
-    # if tg_settings_form.save_tg.data and tg_settings_form.validate():
-    #     settings = tools.Settings()
-    #     settings["tg_pin"] = tg_settings_form.tg_pin.data
-    #
-    #     settings.update_settings()
-    #     return redirect("/settings")
+        TgSettingsDAO.update_settings(settings)
+        return redirect("/settings")
 
     if schedule_settings_form.save_schedule.data and schedule_settings_form.validate():
         settings = QuestionSettings(schedule_settings_form.time_period.data, schedule_settings_form.from_time.data,
