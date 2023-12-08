@@ -15,7 +15,6 @@ class Schedule(Thread):
         self._callback = callback
 
         self._every = None
-        self._order = None  # 1 if time period is calculated first and 0 in other case
         self._week_days = None
         self._from_time = None
         self._to_time = None
@@ -27,7 +26,6 @@ class Schedule(Thread):
 
     def from_settings(self):
         self._every = Settings()['time_period']
-        self._order = Settings()['order']
         self._week_days = Settings()['week_days']
         self._from_time = Settings()['from_time']
         self._to_time = Settings()['to_time']
@@ -43,8 +41,7 @@ class Schedule(Thread):
             question_for_person = []
             if self._from_time is None or self._from_time <= now.time() <= self._to_time:
                 if self.previous_call is None or (now >= self.previous_call + self._every):
-                    if self._order == 1:
-                        self.previous_call = now
+                    self.previous_call = now
                     if self._week_days is None or now.weekday() in self._week_days:
                         self.task()
                         self.previous_call = now
@@ -54,7 +51,7 @@ class Schedule(Thread):
     def task(self):
         users_sessions = []
         for person in Person.get_all_people():
-            session = Session(person, Settings()["max_time"], Settings()["max_questions"])
+            session = Session(person)
             session.generate_questions()
             users_sessions.append(session)
             print(person)

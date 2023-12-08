@@ -4,14 +4,13 @@ socket.on('connect', function () {
     socket.emit('index_connected');
 });
 
-socket.on('peopleList', function (json_data) {
+socket.on('peopleList', function (data) {
     let items = document.getElementsByClassName('placeholder-glow');
     Array.from(items).forEach(function (item) {
         item.remove();
     });
 
     let list = document.getElementById('PeopleList');
-    let data = JSON.parse(json_data)
     let textSecondary = ""
     if (data.person.is_paused) {
         textSecondary += "\"text-secondary\""

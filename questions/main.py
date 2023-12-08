@@ -8,10 +8,7 @@ from tools import Settings
 default_settings = {"time_period": datetime.timedelta(seconds=30),
                     "from_time": datetime.time(0),
                     "to_time": datetime.time(23, 59),
-                    "order": 1,
                     "week_days": [d for d in range(7)],
-                    "max_time": datetime.timedelta(minutes=1),
-                    "max_questions": 1,
                     }
 
 if __name__ == '__main__':

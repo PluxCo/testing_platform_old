@@ -46,6 +46,7 @@ services:
       - fusionauth
       - telegram
     environment:
+      TZ: Asia/Yekaterinburg
       FUSIONAUTH_DOMAIN: http://fusionauth:9011
       FUSIONAUTH_TOKEN: ${QUESTIONS_FUSIONAUTH_TOKEN}
       TELEGRAM_API: http://telegram:3000
@@ -74,7 +75,7 @@ services:
       context: ./web
       dockerfile: Dockerfile
     ports:
-      - "3002:5000"
+      - "3002:3000"
     depends_on:
       - fusionauth
     environment:
