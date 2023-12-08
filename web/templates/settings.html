@@ -37,8 +37,8 @@
                                     <tbody>
                                     {% for g in groups %}
                                         <tr>
-                                            <th scope="col">{{ g.id }}</th>
-                                            <th scope="col">{{ g.name }}</th>
+                                            <th scope="col">{{ loop.index }}</th>
+                                            <th scope="col">{{ g.label }}</th>
                                         </tr>
                                     {% endfor %}
                                     </tbody>

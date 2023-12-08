@@ -43,3 +43,15 @@ class GroupsDAO:
 
         for g in resp["groups"]:
             yield GroupsDAO._construct(g)
+
+    @staticmethod
+    def create_group(group: Group):
+        req = {
+            "group": {
+                "name": group.label
+            }
+        }
+
+        resp = requests.post(f"{GroupsDAO.__host}/api/group/",
+                             json=req,
+                             headers={"Authorization": GroupsDAO.__token})

@@ -49,7 +49,8 @@ class QuestionsDAO:
     def _construct(resp):
         q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
                      resp["answer"], [g["group_id"] for g in resp["groups"]],
-                     resp["level"], resp["article_url"])
+                     resp["level"], resp["article_url"],
+                     QuestionType(resp["type"]))
         return q
 
     @staticmethod

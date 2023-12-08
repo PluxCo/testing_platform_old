@@ -1,9 +1,10 @@
+import logging
 import os
 
 from flask import Flask, render_template, jsonify, request, redirect
 from flask_socketio import SocketIO
 
-from data_accessors.auth_accessor import GroupsDAO
+from data_accessors.auth_accessor import GroupsDAO, Group
 from data_accessors.questions_accessor import QuestionsDAO, Question
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
@@ -17,7 +18,7 @@ socketio = SocketIO(app)
 QuestionsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 QuestionSettingsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 TgSettingsDAO.set_host(os.getenv("TELEGRAM_URL", "http://localhost:3001"))
-GroupsDAO.set_host(os.getenv("FUSIONAUTH_HOST"), os.getenv("FUSIONAUTH_TOKEN"))
+GroupsDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
 
 
 @app.route("/questions_ajax")
@@ -45,7 +46,13 @@ def questions_ajax():
 
     for q in questions:
         options = "<ol>" + "".join(f"<li>{option}</li>" for option in q.options) + "</ol>"
-        groups = ", ".join(GroupsDAO.get_group(g).label for g in q.groups)
+        groups = []
+        for g in q.groups:
+            try:
+                groups.append(GroupsDAO.get_group(g).label)
+            except:
+                logging.error(f"Unavailable group-id: {g}")
+        groups = ", ".join(groups)
         res["data"].append((q.id, q.text, q.subject, options, q.answer, groups, q.level, q.article))
 
     return jsonify(res)
@@ -105,6 +112,13 @@ def settings_page():
     schedule_settings_form = ScheduleSettingsForm(time_period=q_settings.time_period, week_days=q_settings.week_days,
                                                   from_time=q_settings.from_time, to_time=q_settings.to_time)
 
+    if create_group_form.create_group.data and create_group_form.validate():
+        new_group = Group("", create_group_form.name.data)
+
+        GroupsDAO.create_group(new_group)
+
+        return redirect("/settings")
+
     if tg_settings_form.save_tg.data and tg_settings_form.validate():
         settings = TgSettings(tg_settings_form.tg_pin.data)
 
@@ -118,7 +132,7 @@ def settings_page():
         QuestionSettingsDAO.update_settings(settings)
         return redirect("/settings")
 
-    groups = []
+    groups = GroupsDAO.get_all_groups()
     return render_template("settings.html", create_group_form=create_group_form, groups=groups,
                            schedule_settings_form=schedule_settings_form,
                            tg_settings_form=tg_settings_form,
