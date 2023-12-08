@@ -192,7 +192,7 @@ class Session:
     Session for managing questions and answers for a person.
     """
 
-    def __init__(self, person: Person, max_time, max_questions):
+    def __init__(self, person: Person):
         """
         Initialize a session for a person.
 
@@ -202,8 +202,6 @@ class Session:
             max_questions: Maximum number of questions for the session.
         """
         self.person = person
-        self.max_time = max_time
-        self.max_questions = max_questions
 
         self._questions: list[AnswerRecord] = []
         self._start_time = datetime.datetime.now()
@@ -214,7 +212,7 @@ class Session:
         """
         Generate questions for the session.
         """
-        self._questions = self.generator.next_bunch(self.person, self.max_questions)
+        self._questions = self.generator.next_bunch(self.person, 1)
         self._start_time = datetime.datetime.now()
 
     def next_question(self) -> Optional[AnswerRecord]:
@@ -224,7 +222,7 @@ class Session:
         Returns:
             Optional[AnswerRecord]: The next question or None if the session is over.
         """
-        if not self._questions or self._start_time + self.max_time < datetime.datetime.now():
+        if not self._questions:
             return None
 
         cur_answer = cur_question = self._questions.pop(0)
