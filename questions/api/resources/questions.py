@@ -5,7 +5,7 @@ from sqlalchemy import select, update, delete
 
 from api.utils import abort_if_doesnt_exist
 from models.db_session import create_session
-from models.questions import Question, QuestionGroupAssociation
+from models.questions import Question, QuestionGroupAssociation, QuestionType, AnswerRecord
 
 # Request parser for updating question data
 update_data_parser = reqparse.RequestParser()
@@ -16,6 +16,7 @@ update_data_parser.add_argument('answer', type=str, required=False)
 update_data_parser.add_argument('groups', type=str, required=False, action='append')
 update_data_parser.add_argument('level', type=int, required=False)
 update_data_parser.add_argument('article_url', type=str, required=False)
+update_data_parser.add_argument('type', type=QuestionType, required=False)
 
 # Request parser for creating a new question
 create_data_parser = reqparse.RequestParser()
@@ -26,6 +27,7 @@ create_data_parser.add_argument('answer', type=str, required=True)
 create_data_parser.add_argument('groups', type=str, required=True, action='append')
 create_data_parser.add_argument('level', type=int, required=True)
 create_data_parser.add_argument('article_url', type=str, required=False)
+create_data_parser.add_argument('type', type=QuestionType, required=False)
 
 
 class QuestionResource(Resource):
@@ -53,6 +55,7 @@ class QuestionResource(Resource):
 
     @abort_if_doesnt_exist("question_id", Question)
     def post(self, question_id):
+        # TODO: fix update of questions so that after changing options the answers stay correct.
         """
         Update the details of a specific Question.
 
@@ -86,6 +89,11 @@ class QuestionResource(Resource):
                            where(QuestionGroupAssociation.question_id == question_id))
 
                 db_question.groups.extend(groups)
+
+            if "options" in filtered_args or "answer" in filtered_args:
+                answers_to_update = db.scalars(select(AnswerRecord).where(AnswerRecord.question_id == db_question.id))
+                for answer in answers_to_update:
+                    answer.calculate_points()
 
             db.commit()
 
@@ -127,7 +135,8 @@ class QuestionsListResource(Resource):
                                    options=json.dumps(args['options'], ensure_ascii=True),
                                    answer=args['answer'],
                                    level=args['level'],
-                                   article_url=args['article_url'])
+                                   article_url=args['article_url'],
+                                   type=args.get('type', QuestionType.TEST))
             db.add(db_question)
             db.commit()
 

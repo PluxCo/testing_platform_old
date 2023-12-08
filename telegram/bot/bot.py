@@ -1,6 +1,5 @@
 import os
 import random
-import sys
 from threading import Thread
 
 import requests

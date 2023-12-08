@@ -7,7 +7,7 @@ import requests
 from flask_restful import Resource, reqparse
 
 from connector.base_connector import ConnectorInterface
-from models.questions import QuestionAnswer
+from models.questions import AnswerRecord
 from schedule.generators import Session
 
 
@@ -37,7 +37,7 @@ class TelegramConnector(ConnectorInterface):
         self.webhook = webhook
 
         # Dictionary to store active sessions along with the current question answer
-        self.alive_sessions: dict[int, tuple[Session, QuestionAnswer]] = {}
+        self.alive_sessions: dict[int, tuple[Session, AnswerRecord]] = {}
 
     def transfer(self, sessions: list[Session]):
         """
@@ -49,11 +49,12 @@ class TelegramConnector(ConnectorInterface):
         request = {"webhook": self.webhook,
                    "messages": []}
 
-        message_relation: list[tuple[Session, QuestionAnswer]] = []
+        message_relation: list[tuple[Session, AnswerRecord]] = []
 
         for session in sessions:
             current_question = session.next_question()
             if current_question is not None:
+
                 # Prepare the message for sending to TelegramService
                 message = {
                     "user_id": current_question.person_id,
@@ -92,8 +93,8 @@ class TelegramConnector(ConnectorInterface):
         match data_type:
             case AnswerType.BUTTON:
                 session, question_answer = self.alive_sessions.pop(data["message_id"])
-                registered_answer = session.register_answer(question_answer, data["button_id"])
-                if (registered_answer.person_answer == registered_answer.question.answer):
+                registered_answer = session.register_answer(question_answer, str(data["button_id"]))
+                if (registered_answer.points):
                     request = {"webhook": self.webhook,
                                "messages": [{
                                    "user_id": registered_answer.person_id,

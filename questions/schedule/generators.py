@@ -6,7 +6,7 @@ import numpy as np
 from sqlalchemy import select, func, or_
 
 from models import db_session
-from models.questions import Question, QuestionAnswer, AnswerState, QuestionGroupAssociation
+from models.questions import Question, AnswerRecord, AnswerState, QuestionGroupAssociation, QuestionType
 from models.users import Person
 from tools import Settings
 
@@ -17,7 +17,7 @@ class GeneratorInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def next_bunch(self, person: Person, count=1) -> list[Question | QuestionAnswer]:
+    def next_bunch(self, person: Person, count=1) -> list[Question | AnswerRecord]:
         """
         Generate a list of questions or question answers.
 
@@ -26,12 +26,12 @@ class GeneratorInterface(abc.ABC):
             count (int): The number of questions to generate.
 
         Returns:
-            list[Question | QuestionAnswer]: List of generated questions or question answers.
+            list[Question | AnswerRecord]: List of generated questions or question answers.
         """
         pass
 
     @staticmethod
-    def _get_planned(db, person: Person) -> list[QuestionAnswer]:
+    def _get_planned(db, person: Person) -> list[AnswerRecord]:
         """
         Get planned question answers for a person.
 
@@ -40,23 +40,23 @@ class GeneratorInterface(abc.ABC):
             person (Person): The person for whom planned question answers are retrieved.
 
         Returns:
-            list[QuestionAnswer]: List of planned question answers.
+            list[AnswerRecord]: List of planned question answers.
         """
-        return db.scalars(select(QuestionAnswer).
-                          where(QuestionAnswer.person_id == person.id,
-                                QuestionAnswer.ask_time <= datetime.datetime.now(),
-                                QuestionAnswer.state == AnswerState.NOT_ANSWERED).
-                          order_by(QuestionAnswer.ask_time)).all()
+        return db.scalars(select(AnswerRecord).
+                          where(AnswerRecord.person_id == person.id,
+                                AnswerRecord.ask_time <= datetime.datetime.now(),
+                                AnswerRecord.state == AnswerState.NOT_ANSWERED).
+                          order_by(AnswerRecord.ask_time)).all()
 
     @staticmethod
-    def _get_person_questions(db, person: Person, planned: list[QuestionAnswer]) -> list[Question]:
+    def _get_person_questions(db, person: Person, planned: list[AnswerRecord]) -> list[Question]:
         """
         Get questions for a person that are not in the planned list.
 
         Args:
             db: Database session.
             person (Person): The person for whom questions are retrieved.
-            planned (list[QuestionAnswer]): List of planned question answers.
+            planned (list[AnswerRecord]): List of planned question answers.
 
         Returns:
             list[Question]: List of questions for the person.
@@ -73,7 +73,7 @@ class SimpleRandomGenerator(GeneratorInterface):
     Simple random question generator.
     """
 
-    def next_bunch(self, person: Person, count=1) -> list[Question | QuestionAnswer]:
+    def next_bunch(self, person: Person, count=1) -> list[Question | AnswerRecord]:
         """
         Generate a list of questions or question answers using a simple random strategy.
 
@@ -82,7 +82,7 @@ class SimpleRandomGenerator(GeneratorInterface):
             count (int): The number of questions to generate.
 
         Returns:
-            list[Question | QuestionAnswer]: List of generated questions or question answers.
+            list[Question | AnswerRecord]: List of generated questions or question answers.
         """
         with db_session.create_session() as db:
             # Get planned questions
@@ -106,7 +106,7 @@ class StatRandomGenerator(GeneratorInterface):
     Statistical random question generator.
     """
 
-    def next_bunch(self, person: Person, count=1) -> list[Question | QuestionAnswer]:
+    def next_bunch(self, person: Person, count=1) -> list[Question | AnswerRecord]:
         """
         Generate a list of questions or question answers using a statistical random strategy.
 
@@ -115,7 +115,7 @@ class StatRandomGenerator(GeneratorInterface):
             count (int): The number of questions to generate.
 
         Returns:
-            list[Question | QuestionAnswer]: List of generated questions or question answers.
+            list[Question | AnswerRecord]: List of generated questions or question answers.
         """
         with db_session.create_session() as db:
             # Get planned questions
@@ -133,27 +133,28 @@ class StatRandomGenerator(GeneratorInterface):
             # Calculate probabilities based on user's performance and other factors
             for i, question in enumerate(person_questions):
                 question: Question
-                correct_count = db.scalar(select(func.count(QuestionAnswer.id)).
-                                          join(QuestionAnswer.question).
-                                          where(QuestionAnswer.person_id == person.id,
-                                                QuestionAnswer.question_id == question.id,
-                                                QuestionAnswer.person_answer == Question.answer))
+                correct_count = db.scalar(select(func.count(AnswerRecord.id)).
+                                          join(AnswerRecord.question).
+                                          where(AnswerRecord.person_id == person.id,
+                                                AnswerRecord.question_id == question.id,
+                                                AnswerRecord.person_answer == Question.answer))
 
                 if correct_count:
-                    last_correct_or_ignored = db.scalar(select(QuestionAnswer).
-                                                        join(QuestionAnswer.question).
-                                                        where(QuestionAnswer.person_id == person.id,
-                                                              QuestionAnswer.question_id == question.id,
-                                                              or_(QuestionAnswer.person_answer == Question.answer,
-                                                                  QuestionAnswer.state != AnswerState.NOT_ANSWERED)).
-                                                        order_by(QuestionAnswer.ask_time.desc()))
+                    last_correct_or_ignored = db.scalar(select(AnswerRecord).
+                                                        join(AnswerRecord.question).
+                                                        where(AnswerRecord.person_id == person.id,
+                                                              AnswerRecord.question_id == question.id,
+                                                              or_(AnswerRecord.person_answer == Question.answer,
+                                                                  AnswerRecord.state != AnswerState.NOT_ANSWERED)).
+                                                        order_by(AnswerRecord.ask_time.desc()))
 
-                    first_answer = db.scalar(select(QuestionAnswer).
-                                             where(QuestionAnswer.person_id == person.id,
-                                                   QuestionAnswer.question_id == question.id))
+                    first_answer = db.scalar(select(AnswerRecord).
+                                             where(AnswerRecord.person_id == person.id,
+                                                   AnswerRecord.question_id == question.id))
 
                     periods_count = (datetime.datetime.now() - first_answer.ask_time) / Settings()["time_period"]
-                    max_target_level = max(gl for pg, gl in person.groups if pg in [x.group_id for x in question.groups])
+                    max_target_level = max(
+                        gl for pg, gl in person.groups if pg in [x.group_id for x in question.groups])
 
                     p = (datetime.datetime.now() - last_correct_or_ignored.ask_time).total_seconds() / correct_count
                     p *= np.abs(np.cos(np.pi * np.log2(periods_count + 4))) ** (
@@ -204,7 +205,7 @@ class Session:
         self.max_time = max_time
         self.max_questions = max_questions
 
-        self._questions: list[QuestionAnswer] = []
+        self._questions: list[AnswerRecord] = []
         self._start_time = datetime.datetime.now()
 
         self.generator = StatRandomGenerator()
@@ -216,12 +217,12 @@ class Session:
         self._questions = self.generator.next_bunch(self.person, self.max_questions)
         self._start_time = datetime.datetime.now()
 
-    def next_question(self) -> Optional[QuestionAnswer]:
+    def next_question(self) -> Optional[AnswerRecord]:
         """
         Get the next question in the session.
 
         Returns:
-            Optional[QuestionAnswer]: The next question or None if the session is over.
+            Optional[AnswerRecord]: The next question or None if the session is over.
         """
         if not self._questions or self._start_time + self.max_time < datetime.datetime.now():
             return None
@@ -229,10 +230,10 @@ class Session:
         cur_answer = cur_question = self._questions.pop(0)
         with db_session.create_session() as db:
             if isinstance(cur_question, Question):
-                cur_answer = QuestionAnswer(question_id=cur_question.id,
-                                            person_id=self.person.id,
-                                            ask_time=datetime.datetime.now(),
-                                            state=AnswerState.NOT_ANSWERED)
+                cur_answer = AnswerRecord(question_id=cur_question.id,
+                                          person_id=self.person.id,
+                                          ask_time=datetime.datetime.now(),
+                                          state=AnswerState.NOT_ANSWERED)
 
                 db.add(cur_answer)
                 db.commit()
@@ -242,15 +243,15 @@ class Session:
             return cur_answer
 
     @staticmethod
-    def mark_question_as_transferred(question_answer: QuestionAnswer) -> None:
+    def mark_question_as_transferred(question_answer: AnswerRecord) -> None:
         """
         Mark a question answer as transferred.
 
         Args:
-            question_answer (QuestionAnswer): The question answer to mark as transferred.
+            question_answer (AnswerRecord): The question answer to mark as transferred.
         """
         with db_session.create_session() as db:
-            question_answer = db.get(QuestionAnswer, question_answer.id)
+            question_answer = db.get(AnswerRecord, question_answer.id)
             question_answer.state = AnswerState.TRANSFERRED
 
             if question_answer.ask_time is None:
@@ -259,20 +260,23 @@ class Session:
             db.commit()
 
     @staticmethod
-    def register_answer(question_answer: QuestionAnswer, user_answer):
+    def register_answer(question_answer: AnswerRecord, user_answer: str):
         """
         Register an answer for a question.
 
         Args:
-            question_answer (QuestionAnswer): The question answer for which the user is providing an answer.
+            question_answer (AnswerRecord): The question answer for which the user is providing an answer.
             user_answer: The user's answer to the question.
         """
         with db_session.create_session() as db:
-            question_answer = db.get(QuestionAnswer, question_answer.id)
+            question_answer = db.get(AnswerRecord, question_answer.id)
+
             if user_answer is not None:
                 question_answer.person_answer = user_answer
                 question_answer.state = AnswerState.ANSWERED
                 question_answer.answer_time = datetime.datetime.now()
+                question_answer.calculate_points()
+
                 db.commit()
                 db.refresh(question_answer)
             return question_answer
