@@ -47,6 +47,27 @@ class Person:
             else:
                 yield Person(person_id, [])
 
+    @staticmethod
+    def get_person(person_id):
+        resp = requests.get(f"{os.getenv('FUSIONAUTH_DOMAIN')}/api/user/{person_id}",
+                            headers={"Authorization": os.getenv("FUSIONAUTH_TOKEN")})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        resp = resp.json()['user']
+
+        person_id = resp["id"]
+        all_groups = [m["groupId"] for m in resp["memberships"]]
+
+        if "groupLevels" in resp["data"]:
+            person_groups = [(item["groupId"], item["level"]) for item in resp["data"]["groupLevels"]
+                             if item["groupId"] in all_groups]
+
+            return Person(person_id, person_groups)
+        else:
+            return Person(person_id, [])
+
     def __repr__(self):
         """
         String representation of the Person object.

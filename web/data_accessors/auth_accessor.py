@@ -106,3 +106,13 @@ class PersonDAO:
 
         for person in resp["users"]:
             yield PersonDAO._construct(person)
+
+    @staticmethod
+    def get_person(person_id) -> Person:
+        resp = requests.get(f"{PersonDAO.__host}/api/user/" + person_id,
+                            headers={"Authorization": PersonDAO.__token})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return PersonDAO._construct(resp.json()['user'])

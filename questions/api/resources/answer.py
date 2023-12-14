@@ -1,14 +1,22 @@
+import datetime
+
 from flask_restful import Resource, reqparse
 from sqlalchemy import select
 
 from api.utils import abort_if_doesnt_exist
+from models import db_session
 from models.db_session import create_session
-from models.questions import AnswerRecord
+from models.questions import AnswerRecord, AnswerState
 
 # Request parser for filtering answer resources based on person_id and question_id
 fields_parser = reqparse.RequestParser()
 fields_parser.add_argument('person_id', type=str, required=False)
 fields_parser.add_argument('question_id', type=int, required=False)
+
+planned_answer_parser = reqparse.RequestParser()
+planned_answer_parser.add_argument('person_id', type=str, required=True)
+planned_answer_parser.add_argument('question_id', type=int, required=True)
+planned_answer_parser.add_argument('ask_time', type=datetime.datetime.fromisoformat, required=True)
 
 
 class AnswerResource(Resource):
@@ -52,3 +60,17 @@ class AnswerListResource(Resource):
             answers = [a.to_dict(rules=("-question",)) for a in db.scalars(select(AnswerRecord).filter_by(**args))]
 
         return answers, 200
+
+    def post(self):
+        with db_session.create_session() as db:
+            args = planned_answer_parser.parse_args()
+
+            new_answer = AnswerRecord(person_id=args['person_id'],
+                                      question_id=args['question_id'],
+                                      ask_time=['ask_time'],
+                                      state=AnswerState.NOT_ANSWERED)
+
+            db.add(new_answer)
+            db.commit()
+
+        return '', 200

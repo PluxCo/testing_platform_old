@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import os
@@ -10,7 +11,7 @@ from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionTy
 from data_accessors.questions_accessor import SettingsDAO as QuestionSettingsDAO, Settings as QuestionSettings
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
-    TelegramSettingsForm, ScheduleSettingsForm
+    TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
 
 logging.basicConfig(level="DEBUG")
 
@@ -25,6 +26,7 @@ GroupsDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN")
 PersonDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
 AnswerRecordDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 StatisticsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
+
 
 @app.route("/questions_ajax")
 def questions_ajax():
@@ -189,6 +191,58 @@ def main_page():
     return render_template("index.html", id_to_name=json.dumps(position_to_name, ensure_ascii=False), title="Tests")
 
 
+@app.route("/statistic/<string:person_id>", methods=["POST", "GET"])
+def statistic_page(person_id):
+    person = PersonDAO.get_person(person_id)
+
+    pause_form = PausePersonForm()
+
+    plan_form = PlanQuestionForm(ask_time=datetime.datetime.now(),
+                                 person_id=person.id)
+
+    timeline = []
+    #
+    # if pause_form.pause.data and pause_form.validate():
+    #     person.is_paused = True
+    #     db.commit()
+    # if pause_form.unpause.data and pause_form.validate():
+    #     person.is_paused = False
+    #     db.commit()
+
+    user_stats = StatisticsDAO.get_user_statistics(person_id)
+
+    subject_stat = user_stats['subject_statistics']
+    bar_data = user_stats['bar_data']
+
+
+    if plan_form.plan.data and plan_form.validate():
+        AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
+
+    # for check_time in [datetime.datetime.now() + datetime.timedelta(x / 3) for x in range(-120, 1)]:
+    #     correct_questions_amount = db.scalar(
+    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
+    #                                                                    QuestionAnswer.answer_time <= check_time,
+    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
+    #                                                                    Question.answer == QuestionAnswer.person_answer))
+    #     incorrect_questions_amount = db.scalar(
+    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
+    #                                                                    QuestionAnswer.answer_time <= check_time,
+    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
+    #                                                                    Question.answer != QuestionAnswer.person_answer))
+    #     ignored_questions_amount = db.scalar(
+    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
+    #                                                                    QuestionAnswer.ask_time <= check_time,
+    #                                                                    QuestionAnswer.state == AnswerState.TRANSFERRED,
+    #                                                                    QuestionAnswer.person_answer == None))
+    #
+    #     timeline.append((check_time.timestamp() * 1000, correct_questions_amount, incorrect_questions_amount,
+    #                      ignored_questions_amount))
+
+    return render_template("statistic.html", person=person, subjects=subject_stat,
+                           timeline=[], bar_data=json.dumps(bar_data, ensure_ascii=False),
+                           pause_form=pause_form, plan_form=plan_form, title="Statistics: " + person.full_name)
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
@@ -213,6 +267,7 @@ def people_list():
                             **short_stats[person.id]})
         socketio.sleep(0)
 
+
 @socketio.on('index_connected_timeline')
 def timeline():
     persons = PersonDAO.get_all_people()
@@ -222,6 +277,8 @@ def timeline():
     for i, person in enumerate(persons):
         id_to_position[person.id] = i
     all_answers = AnswerRecordDAO.get_all_records()
+
+    # TODO: Add open questions checking
 
     for answer in all_answers:
         if answer.answer_time:

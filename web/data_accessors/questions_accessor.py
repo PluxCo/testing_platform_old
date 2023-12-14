@@ -157,6 +157,11 @@ class StatisticsDAO:
         logging.debug(StatisticsDAO.__host)
         return requests.get(StatisticsDAO.__resource.format(StatisticsDAO.__host) + 'user_short').json()
 
+    @staticmethod
+    def get_user_statistics(person_id) -> dict:
+        resp = requests.get(StatisticsDAO.__resource.format(StatisticsDAO.__host) + 'user/' + person_id)
+        return resp.json()
+
 
 class AnswerRecord:
     def __init__(self, r_id: int,
@@ -202,3 +207,14 @@ class AnswerRecordDAO:
     def get_all_records():
         for item in requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json={}).json():
             yield AnswerRecordDAO._construct(item)
+
+    @staticmethod
+    def plan_question(question_id, person_id, ask_time):
+        req = {"question_id": question_id,
+               "person_id": person_id,
+               "ask_time": ask_time}
+
+        resp = requests.post(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json=req)
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
