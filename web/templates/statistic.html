@@ -133,24 +133,24 @@
         <div class="row table-responsive rounded mb-3 ms-5" id="timeline">
             <table class="table m-0 table-bordered">
                 <tr class="d-flex">
-{#                    {% for answer in person.answers|reverse %}#}
-{#                        {% if answer.state == AnswerState.ANSWERED and answer.person_answer == answer.question.answer %}#}
-{#                            {% set a_bg = "table-success" %}#}
-{#                            {% set a_label = "Correct" %}#}
-{#                        {% elif answer.state == AnswerState.ANSWERED and answer.person_answer != answer.question.answer %}#}
-{#                            {% set a_bg = "table-warning" %}#}
-{#                            {% set a_label = "Incorrect" %}#}
-{#                        {% elif answer.state == AnswerState.TRANSFERRED %}#}
-{#                            {% set a_bg = "table-info" %}#}
-{#                            {% set a_label = "Skipped" %}#}
-{#                        {% elif answer.state == AnswerState.NOT_ANSWERED %}#}
-{#                            {% set a_bg = "table-secondary" %}#}
-{#                            {% set a_label = "Planned" %}#}
-{#                        {% endif %}#}
-{##}
-{#                        <td class="text-center {{ a_bg }} question_stat" data-question="{{ answer.question.id }}">#}
-{#                        </td>#}
-{#                    {% endfor %}#}
+                    {% for answer in person.answers|reverse %}
+                        {% if answer.state == AnswerState.ANSWERED and answer.person_answer == answer.question.answer %}
+                            {% set a_bg = "table-success" %}
+                            {% set a_label = "Correct" %}
+                        {% elif answer.state == AnswerState.ANSWERED and answer.person_answer != answer.question.answer %}
+                            {% set a_bg = "table-warning" %}
+                            {% set a_label = "Incorrect" %}
+                        {% elif answer.state == AnswerState.TRANSFERRED %}
+                            {% set a_bg = "table-info" %}
+                            {% set a_label = "Skipped" %}
+                        {% elif answer.state == AnswerState.NOT_ANSWERED %}
+                            {% set a_bg = "table-secondary" %}
+                            {% set a_label = "Planned" %}
+                        {% endif %}
+
+                        <td class="text-center {{ a_bg }} question_stat" data-question="{{ answer.question.id }}">
+                        </td>
+                    {% endfor %}
                 </tr>
             </table>
         </div>

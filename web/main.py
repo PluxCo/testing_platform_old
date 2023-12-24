@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-import os
 
 from flask import Flask, render_template, jsonify, request, redirect
 from flask_socketio import SocketIO, emit
@@ -18,14 +17,6 @@ logging.basicConfig(level="DEBUG")
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 socketio = SocketIO(app)
-
-QuestionsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
-QuestionSettingsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
-TgSettingsDAO.set_host(os.getenv("TELEGRAM_URL", "http://localhost:3001"))
-GroupsDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
-PersonDAO.set_host(os.getenv("FUSIONAUTH_DOMAIN"), os.getenv("FUSIONAUTH_TOKEN"))
-AnswerRecordDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
-StatisticsDAO.set_host(os.getenv("QUESTIONS_URL", "http://localhost:3000"))
 
 
 @app.route("/questions_ajax")
@@ -214,7 +205,6 @@ def statistic_page(person_id):
     subject_stat = user_stats['subject_statistics']
     bar_data = user_stats['bar_data']
 
-
     if plan_form.plan.data and plan_form.validate():
         AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
 
@@ -293,6 +283,12 @@ def timeline():
     }
 
     emit('timeline', json.dumps(config))
+
+
+@socketio.on("get_question_stat")
+def get_question_stat(data):
+    res = StatisticsDAO.get_question_statistics(data["person_id"], data["question_id"])
+    emit("question_info", res)
 
 
 if __name__ == "__main__":

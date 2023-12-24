@@ -2,6 +2,7 @@ import datetime
 import enum
 from typing import List, Optional
 
+import requests
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy_serializer import SerializerMixin
