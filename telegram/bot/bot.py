@@ -71,12 +71,6 @@ def submit_buttons(call: CallbackQuery):
         target_level(call.message)
 
 
-@bot.message_handler()
-def strange_messages(message: Message):
-    bot.send_message(message.from_user.id, "я не знаю такой команды")
-    bot.send_sticker(message.from_user.id, random.choice(stickers["is_registered"]))
-
-
 def target_level(message: Message):
     tg_id = message.chat.id
     groups = get(os.environ["FUSIONAUTH_DOMAIN"] + "/api/group",
@@ -216,6 +210,7 @@ def send_messages(messages, webhook):
                                                  MessageType(message["type"]), message["data"])
         if str(user_id) not in users_ids.keys():
             ids.append(None)
+            tg_ids.append(None)
             continue
         current_tg_id = users_ids[str(user_id)]
         tg_ids.append(current_tg_id)
@@ -262,7 +257,7 @@ def send_messages(messages, webhook):
 
 def get_answer(message: Message):
     if not message.reply_to_message:
-        bot.send_message(message.from_user.id, "Чтобы дать ответ, ответьте сообщение с вопросом")
+        bot.send_message(message.from_user.id, "Чтобы дать ответ, ответьте на сообщение с вопросом")
         bot.register_next_step_handler(message, get_answer)
     else:
         with create_session() as db:
@@ -304,6 +299,11 @@ def handling_button_answers(call: CallbackQuery):
 
             except Exception as e:
                 bot.edit_message_reply_markup(call.from_user.id, call.message.id)
+
+@bot.message_handler()
+def strange_messages(message: Message):
+    bot.send_message(message.from_user.id, "я не знаю такой команды")
+    bot.send_sticker(message.from_user.id, random.choice(stickers["is_registered"]))
 
 
 def start_bot():
