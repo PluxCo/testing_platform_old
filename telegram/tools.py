@@ -1,5 +1,21 @@
 import json
 import os
+import sys
+import logging
+
+
+def setup_logger(name, formatter=logging.Formatter('%(name)s: %(asctime)s %(levelname)s %(message)s'), stream=sys.stdout,
+                 level=logging.INFO):
+    """To setup as many loggers as you want"""
+
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 
 class Settings(dict):
