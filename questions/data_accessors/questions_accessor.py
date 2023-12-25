@@ -76,11 +76,8 @@ class QuestionsDAO:
         return QuestionsDAO._construct(resp)
 
     @staticmethod
-    def get_questions(search_string="", column_to_order="", descending=False):
-        resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host),
-                            json={"search_string": search_string, "column_to_order": column_to_order,
-                                  "descending": descending}).json()
-        print(search_string, column_to_order, descending, resp)
+    def get_all_questions():
+        resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host)).json()
         for q in resp:
             yield QuestionsDAO._construct(q)
 

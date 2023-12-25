@@ -1,7 +1,7 @@
 import json
 
 from flask_restful import Resource, reqparse
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, or_, desc, asc
 
 from api.utils import abort_if_doesnt_exist
 from models.db_session import create_session
@@ -28,6 +28,11 @@ create_data_parser.add_argument('groups', type=str, required=True, action='appen
 create_data_parser.add_argument('level', type=int, required=True)
 create_data_parser.add_argument('article_url', type=str, required=False)
 create_data_parser.add_argument('type', type=QuestionType, required=False)
+
+sorted_question_data_parser = reqparse.RequestParser()
+sorted_question_data_parser.add_argument('search_string', type=str, required=False)
+sorted_question_data_parser.add_argument('column_to_order', type=str, required=False)
+sorted_question_data_parser.add_argument('descending', type=bool, required=False)
 
 
 class QuestionResource(Resource):
@@ -112,12 +117,34 @@ class QuestionsListResource(Resource):
         Returns:
             tuple: A tuple containing the list of Question instances and HTTP status code.
         """
+        args = sorted_question_data_parser.parse_args()
+
+        search_string = args['search_string']
+        column_to_order = args['column_to_order']
+        descending = args['descending']
+
+        if descending:
+            column_to_order = desc(column_to_order)
+
         with create_session() as db:
-            # Retrieve Question instances from the database and convert them to dictionaries
-            db_question = [q.to_dict(rules=("-groups.id", "-groups.question_id")) for q in
-                           db.scalars(select(Question))]
-            for q in db_question:
-                q["options"] = json.loads(q["options"])
+            if search_string != "" or column_to_order != "":
+                questions = db.scalars(select(Question).
+                                       where(or_(Question.text.ilike(f"%{search_string}%"),
+                                                 Question.subject.ilike(f"%{search_string}%"),
+                                                 Question.options.ilike(f"%{search_string}%"),
+                                                 Question.level.ilike(f"%{search_string}%"),
+                                                 Question.article_url.ilike(f"%{search_string}%"))).
+                                       order_by(column_to_order))
+                db_question = [q.to_dict(rules=("-groups.id", "-groups.question_id")) for q in
+                               questions]
+                for q in db_question:
+                    q["options"] = json.loads(q["options"])
+            else:
+                # Retrieve Question instances from the database and convert them to dictionaries
+                db_question = [q.to_dict(rules=("-groups.id", "-groups.question_id")) for q in
+                               db.scalars(select(Question))]
+                for q in db_question:
+                    q["options"] = json.loads(q["options"])
 
         return db_question, 200
 

@@ -133,13 +133,3 @@ bubble_chart_canvas.ondblclick = (evt) => {
     bubble_chart.resetZoom();
 };
 
-bubble_chart_canvas.onclick = (evt) => {
-    const res = bubble_chart.getElementsAtEventForMode(evt, 'nearest', {intersect: true}, true);
-
-    if (res.length === 0) {
-        return;
-    }
-
-    window.location.href = "/statistic/" + bubble_chart.data.datasets[res[0].datasetIndex].data[res[0].index].y;
-};
-

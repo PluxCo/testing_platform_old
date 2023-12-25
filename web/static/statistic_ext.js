@@ -13,7 +13,7 @@ window.onload = function () {
             document.querySelector("#planquestionform-question_id").value = event.currentTarget.dataset.question;
 
             socket.emit("get_question_stat", {
-                person_id: parseInt(document.querySelector("#person").dataset.person),
+                person_id: document.querySelector("#person").dataset.person,
                 question_id: parseInt(event.currentTarget.dataset.question)
             });
         });
@@ -30,6 +30,7 @@ socket.on("question_info", function (data) {
 
     let answers_tbl = modal.querySelector(".q_answers");
     answers_tbl.innerHTML = "";
+    console.log(data)
     data.answers.forEach(function (answer) {
         let tr_style = "";
         switch (answer.state) {
