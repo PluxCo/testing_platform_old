@@ -80,7 +80,6 @@ class QuestionsDAO:
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host),
                             json={"search_string": search_string, "column_to_order": column_to_order,
                                   "descending": descending}).json()
-        print(search_string, column_to_order, descending, resp)
         for q in resp:
             yield QuestionsDAO._construct(q)
 
@@ -100,6 +99,29 @@ class QuestionsDAO:
         resp = requests.post(QuestionsDAO.__resource.format(QuestionsDAO.__host), json=req)
 
         return QuestionsDAO._construct(resp.json())
+
+    @staticmethod
+    def update_question(question: Question):
+        req = {
+            "text": question.text,
+            "subject": question.subject,
+            "options": question.options,
+            "answer": question.answer,
+            "groups": question.groups,
+            "level": question.level,
+            "article_url": question.article,
+            "type": question.type.value
+        }
+
+        resp = requests.post(QuestionsDAO.__resource.format(QuestionsDAO.__host) + f'/{question.id}', json=req)
+
+        return '', resp.status_code
+
+    @staticmethod
+    def delete_question(question_id: int):
+        resp = requests.delete(QuestionsDAO.__resource.format(QuestionsDAO.__host) + f'/{question_id}')
+
+        return resp.status_code
 
 
 class Settings:
@@ -167,9 +189,10 @@ class StatisticsDAO:
         return resp.json()
 
     @staticmethod
-    def get_question_statistics(person_id, question_id) -> dict:
+    def get_question_statistics(question_id, person_id="") -> dict:
         resp = requests.get(
-            StatisticsDAO.__resource.format(StatisticsDAO.__host) + f'question/{person_id}/{question_id}')
+            StatisticsDAO.__resource.format(StatisticsDAO.__host) + f'question/',
+            json={"person_id": person_id, "question_id": question_id})
         return resp.json()
 
 

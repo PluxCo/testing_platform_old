@@ -102,7 +102,14 @@ class QuestionResource(Resource):
 
             db.commit()
 
-        return self.get(question_id=question_id)
+        return self.get(question_id=question_id), 200
+
+    def delete(self, question_id):
+        with create_session() as db:
+            question = db.get(Question, question_id)
+            db.delete(question)
+            db.commit()
+        return '', 200
 
 
 class QuestionsListResource(Resource):

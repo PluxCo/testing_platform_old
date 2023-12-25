@@ -1,6 +1,6 @@
 import json
 
-from flask_restful import Resource
+from flask_restful import Resource, reqparse
 from sqlalchemy import select, distinct
 
 from data_accessors.auth_accessor import GroupsDAO
@@ -8,6 +8,9 @@ from models import db_session
 from models.questions import AnswerRecord, Question, QuestionGroupAssociation, AnswerState
 from models.users import Person
 
+question_stats_data_parser = reqparse.RequestParser()
+question_stats_data_parser.add_argument('question_id', type=str, required=False)
+question_stats_data_parser.add_argument('person_id', type=str, required=False)
 
 class ShortStatisticsResource(Resource):
 
@@ -141,37 +144,43 @@ class UserStatisticsResource(Resource):
 
 
 class QuestionStatisticsResourse(Resource):
-    def get(self, person_id, question_id):
+    def get(self):
+        args = question_stats_data_parser.parse_args()
+        person_id = args["person_id"]
+        question_id = args["question_id"]
         res = {"question": None, "answers": []}
 
         with db_session.create_session() as db:
             question = db.get(Question, question_id)
 
-            # FIXME: No groups.name it needs to be extracted from FusionAuth! Sad I know.
             res["question"] = question.to_dict(
                 only=("text", "level", "answer", "id", "groups.group_id", "subject", "article_url"))
             for group in res["question"]["groups"]:
-                group["name"] = GroupsDAO.get_group(group["group_id"]).label
+                try:
+                    group["name"] = GroupsDAO.get_group(group["group_id"]).label
+                except Exception as e:
+                    pass
 
             res["question"]["options"] = json.loads(question.options)
 
-            answers = db.scalars(select(AnswerRecord).
-                                 where(AnswerRecord.person_id == person_id,
-                                       AnswerRecord.question_id == question_id).
-                                 order_by(AnswerRecord.ask_time.desc()))
+            if person_id != "":
+                answers = db.scalars(select(AnswerRecord).
+                                     where(AnswerRecord.person_id == person_id,
+                                           AnswerRecord.question_id == question_id).
+                                     order_by(AnswerRecord.ask_time.desc()))
 
-            for a in answers:
-                a: AnswerRecord
-                if a.state == AnswerState.TRANSFERRED:
-                    answer_state = "IGNORED"
-                elif a.state == AnswerState.NOT_ANSWERED:
-                    answer_state = "NOT_ANSWERED"
-                elif a.question.answer == a.person_answer:
-                    answer_state = "CORRECT"
-                else:
-                    answer_state = "INCORRECT"
+                for a in answers:
+                    a: AnswerRecord
+                    if a.state == AnswerState.TRANSFERRED:
+                        answer_state = "IGNORED"
+                    elif a.state == AnswerState.NOT_ANSWERED:
+                        answer_state = "NOT_ANSWERED"
+                    elif a.question.answer == a.person_answer:
+                        answer_state = "CORRECT"
+                    else:
+                        answer_state = "INCORRECT"
 
-                res["answers"].append(a.to_dict(only=("person_answer", "answer_time", "ask_time")))
-                res["answers"][-1]["state"] = answer_state
+                    res["answers"].append(a.to_dict(only=("person_answer", "answer_time", "ask_time")))
+                    res["answers"][-1]["state"] = answer_state
 
         return res, 200

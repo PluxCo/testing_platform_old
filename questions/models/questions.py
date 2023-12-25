@@ -75,7 +75,7 @@ class Question(SqlAlchemyBase, SerializerMixin):
     subject: Mapped[Optional[str]]
     options: Mapped[str]
     answer: Mapped[str]
-    groups: Mapped[List[QuestionGroupAssociation]] = relationship()
+    groups: Mapped[List[QuestionGroupAssociation]] = relationship(cascade='all, delete-orphan')
     level: Mapped[int]
     article_url: Mapped[Optional[str]]
     type: Mapped[QuestionType] = mapped_column(default=QuestionType.TEST)

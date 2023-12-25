@@ -18,6 +18,6 @@ api.add_resource(SettingsResource, "/settings/")
 
 api.add_resource(ShortStatisticsResource, "/statistics/user_short")
 api.add_resource(UserStatisticsResource, "/statistics/user/<string:person_id>")
-api.add_resource(QuestionStatisticsResourse, "/statistics/question/<string:person_id>/<string:question_id>")
+api.add_resource(QuestionStatisticsResourse, "/statistics/question/")
 
 api.add_resource(TelegramWebhookResource, "/webhook/")

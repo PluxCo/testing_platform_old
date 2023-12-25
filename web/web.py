@@ -41,6 +41,7 @@ def logout():
 
     return redirect(logout_url)
 
+
 @app.route('/callback')
 def callback():
     # Extract the authorization code from the request
@@ -63,6 +64,7 @@ def callback():
 
     # Redirect to the main page
     return redirect(url_for('main_page'))
+
 
 @app.route("/questions_ajax")
 def questions_ajax():
@@ -175,6 +177,29 @@ def questions_page():
                 import_question_form.groups.choices = groups
         except (json.decoder.JSONDecodeError, KeyError) as e:
             import_question_form.import_data.errors.append("Decode error: {}".format(e))
+
+    if edit_question_form.save.data and edit_question_form.validate():
+        question_id = int(edit_question_form.id.data)
+        selected_groups = edit_question_form.groups.data
+
+        question = Question(question_id,
+                            edit_question_form.text.data,
+                            edit_question_form.subject.data,
+                            edit_question_form.options.data.splitlines(),
+                            edit_question_form.answer.data,
+                            selected_groups,
+                            edit_question_form.level.data,
+                            edit_question_form.article.data,
+                            q_type=QuestionType.TEST)
+
+        QuestionsDAO.update_question(question)
+
+        return redirect("/questions")
+
+    if delete_question_form.delete.data:
+        QuestionsDAO.delete_question(int(delete_question_form.id.data))
+
+        return redirect("/questions")
 
     return render_template("question.html",
                            active_tab=active_tab,
@@ -339,5 +364,6 @@ def timeline():
 
 @socketio.on("get_question_stat")
 def get_question_stat(data):
-    res = StatisticsDAO.get_question_statistics(data["person_id"], data["question_id"])
+    res = StatisticsDAO.get_question_statistics(data["question_id"],
+                                                data["person_id"] if "person_id" in data.keys() else "")
     emit("question_info", res)
