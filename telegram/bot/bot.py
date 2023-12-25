@@ -10,8 +10,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQu
 
 from bot.models.telegram_types import MessageType, AnswerType
 from bot.models.telegram_types import Person
-from models import db_session
-from models.message import Message as MessageModel
+from models.db_session import create_session
+from models.messagemodel import MessageModel as MessageModel
 from models.user import User
 from tools import Settings
 
@@ -71,6 +71,12 @@ def submit_buttons(call: CallbackQuery):
         target_level(call.message)
 
 
+@bot.message_handler()
+def strange_messages(message: Message):
+    bot.send_message(message.from_user.id, "я не знаю такой команды")
+    bot.send_sticker(message.from_user.id, random.choice(stickers["is_registered"]))
+
+
 def target_level(message: Message):
     tg_id = message.chat.id
     groups = get(os.environ["FUSIONAUTH_DOMAIN"] + "/api/group",
@@ -107,7 +113,7 @@ def add_target_level(message: Message):
 
 
 def password_check(message: Message):
-    with db_session.create_session() as db:
+    with create_session() as db:
         if message.text == Settings()["pin"]:
             person_in_db = False
             user_tg_id = message.from_user.id
@@ -156,7 +162,7 @@ def add_new_person(message: Message):
                  headers={"Authorization": os.environ["FUSIONAUTH_TOKEN"]},
                  json=person).json()
         people.pop(message.from_user.id)
-        with db_session.create_session() as db:
+        with create_session() as db:
             user = User()
             user.tg_id = message.from_user.id
             user.auth_id = r["user"]["id"]
@@ -200,7 +206,7 @@ def send_messages(messages, webhook):
     tg_ids = []
     user_fusion_ids = [message["user_id"] for message in messages]
     users_ids = {}
-    with db_session.create_session() as db:
+    with create_session() as db:
         current_users = db.scalars(select(User).where(User.auth_id.in_(user_fusion_ids)))
         for user in current_users:
             users_ids[user.auth_id] = user.tg_id
@@ -217,7 +223,12 @@ def send_messages(messages, webhook):
 
         # sending simple message
         if message_type == MessageType.SIMPLE:
-            id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to).message_id
+            message = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to)
+            id = message.message_id
+            try:
+                bot.register_next_step_handler(message, get_answer)
+            except Exception as e:
+                pass
 
         # sending message with buttons
         elif message_type == MessageType.WITH_BUTTONS:
@@ -238,20 +249,45 @@ def send_messages(messages, webhook):
 
         ids.append(id)
 
-    with db_session.create_session() as db:
+    with create_session() as db:
         for i in range(len(ids)):
             if ids[i] is not None:
                 db.add(MessageModel(tg_id=int(tg_ids[i]),
                                     message_id=str(ids[i]),
-                                    webhook=str(webhook)))
+                                    webhook=str(webhook),
+                                    message_type=message_type.value))
         db.commit()
     return ids
+
+
+def get_answer(message: Message):
+    if not message.reply_to_message:
+        bot.send_message(message.from_user.id, "Чтобы дать ответ, ответьте сообщение с вопросом")
+        bot.register_next_step_handler(message, get_answer)
+    else:
+        with create_session() as db:
+            question_message = db.scalar(
+                select(MessageModel).where(MessageModel.message_id == message.reply_to_message.id,
+                                           MessageModel.tg_id == message.from_user.id))
+            if question_message:
+                user_id = db.get(User, question_message.tg_id)
+        if question_message is not None and user_id:
+            try:
+                r = requests.post(question_message.webhook,
+                                  json={"user_id": user_id.auth_id, "type": question_message.message_type, "data": {
+                                      "question_message_id": message.reply_to_message.id,
+                                      "answer_message_id": message.id,
+                                      "answer": message.text
+                                  }
+                                        })
+            except Exception as e:
+                print(e)
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith("answer"))
 def handling_button_answers(call: CallbackQuery):
     button_id = int(call.data.split("_")[1])
-    with db_session.create_session() as db:
+    with create_session() as db:
         webhook = db.scalar(select(MessageModel).where(call.from_user.id == MessageModel.tg_id,
                                                        str(call.message.id) == MessageModel.message_id))
         db_person = db.get(User, int(call.from_user.id))
