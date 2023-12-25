@@ -50,10 +50,10 @@ socket.on("question_info", function (data) {
 });
 
 
-// document.querySelector('#delete-btn').addEventListener('click', function () {
-//     table.row('.selected').remove().draw(false);
-//     const id = table.rows('.selected').nodes()[0].cells[0].innerText;
-//
-//     document.getElementById('edit_button').setAttribute('disabled', '');
-//     document.getElementById('delete_button').setAttribute('disabled', '');
-// });
+document.querySelector('#delete-btn').addEventListener('click', function () {
+    table.row('.selected').remove().draw(false);
+    const id = table.rows('.selected').nodes()[0].cells[0].innerText;
+
+    document.getElementById('edit_button').setAttribute('disabled', '');
+    document.getElementById('delete_button').setAttribute('disabled', '');
+});
