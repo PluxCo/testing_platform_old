@@ -81,6 +81,8 @@ services:
     environment:
       FUSIONAUTH_HOST: http://fusionauth:9011
       FUSIONAUTH_TOKEN: ${WEB_FUSIONAUTH_TOKEN}
+      FUSIONAUTH_CLIENT_ID: ${FUSIONAUTH_CLIENT_ID}
+      FUSIONAUTH_CLIENT_SECRET: ${FUSIONAUTH_CLIENT_SECRET}
       QUESTIONS_URL: http://questions:3000
     volumes:
       - web_data:/app/data

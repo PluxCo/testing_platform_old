@@ -1,8 +1,9 @@
 import datetime
 import json
 import logging
+import os
 
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
@@ -11,10 +12,57 @@ from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionTy
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
+from utils import fusionauth_login_required
 
 app = Flask(__name__)
 socketio = SocketIO(app)
 
+from fusionauth.fusionauth_client import FusionAuthClient
+
+fusionauth_client = FusionAuthClient(api_key=os.getenv('FUSIONAUTH_CLIENT_ID'),
+                                     base_url=os.getenv('FUSIONAUTH_DOMAIN'))
+
+
+@app.route('/login')
+def login():
+    login_url = f"{fusionauth_client.base_url}/oauth2/authorize?client_id={fusionauth_client.api_key}&redirect_uri={url_for('callback', _external=True)}&response_type=code"
+    return redirect(login_url)
+
+
+@app.route('/logout')
+def logout():
+    user_id = session.pop('user_id', None)
+    access_token = session.pop('access_token', None)
+
+    if access_token:
+        response = fusionauth_client.revoke_token(access_token)
+
+    logout_url = f"{fusionauth_client.base_url}/oauth2/logout?client_id={fusionauth_client.api_key}"
+
+    return redirect(logout_url)
+
+@app.route('/callback')
+def callback():
+    # Extract the authorization code from the request
+    code = request.args.get('code')
+
+    # Exchange the authorization code for an access token
+    response = fusionauth_client.exchange_o_auth_code_for_access_token(
+        code,
+        url_for('callback', _external=True),
+        client_id=os.getenv('FUSIONAUTH_CLIENT_ID'),
+        client_secret=os.getenv('FUSIONAUTH_CLIENT_SECRET')
+    )
+    print(response.status)
+    # Extract user information from the FusionAuth response
+    user_id = response.success_response['userId']
+    print(user_id)
+
+    # Store user_id in the session
+    session['user_id'] = user_id
+
+    # Redirect to the main page
+    return redirect(url_for('main_page'))
 
 @app.route("/questions_ajax")
 def questions_ajax():
@@ -138,6 +186,7 @@ def questions_page():
 
 
 @app.route("/settings", methods=["POST", "GET"])
+@fusionauth_login_required
 def settings_page():
     q_settings = QuestionSettingsDAO.get_settings()
     tg_settings = TgSettingsDAO.get_settings()
@@ -175,6 +224,7 @@ def settings_page():
 
 
 @app.route("/")
+@fusionauth_login_required
 def main_page():
     persons = PersonDAO.get_all_people()
     position_to_name = {}
@@ -184,6 +234,7 @@ def main_page():
 
 
 @app.route("/statistic/<string:person_id>", methods=["POST", "GET"])
+@fusionauth_login_required
 def statistic_page(person_id):
     person = PersonDAO.get_person(person_id)
 
