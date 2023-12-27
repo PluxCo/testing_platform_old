@@ -47,9 +47,12 @@ socket.on("question_info", function (data) {
                 tr_style = "table-secondary";
                 break;
         }
-        answers_tbl.innerHTML += `<tr class="${tr_style}"><td>${data.question.options ? data.question.options[answer.person_answer - 1] : answer.person_answer}</td>
-<td>${answer.ask_time}</td>
-<td>${answer.answer_time}</td></tr>`;
+        answers_tbl.innerHTML += `<tr class="${tr_style}">
+                                    <td>${data.question.options ? data.question.options[answer.person_answer - 1] : answer.person_answer}</td>
+                                    <td>${answer.points}</td>
+                                    <td>${answer.ask_time}</td>
+                                    <td>${answer.answer_time}</td>
+                                  </tr>`;
     });
 
     modal.querySelectorAll(".datable").forEach(function (datable) {

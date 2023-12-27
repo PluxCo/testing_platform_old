@@ -180,7 +180,7 @@ class QuestionStatisticsResourse(Resource):
                     else:
                         answer_state = "INCORRECT"
 
-                    res["answers"].append(a.to_dict(only=("person_answer", "answer_time", "ask_time")))
+                    res["answers"].append(a.to_dict(only=("person_answer", "answer_time", "ask_time", "points")))
                     res["answers"][-1]["state"] = answer_state
 
         return res, 200

@@ -248,7 +248,7 @@ class AnswerRecordDAO:
     def plan_question(question_id, person_id, ask_time):
         req = {"question_id": question_id,
                "person_id": person_id,
-               "ask_time": ask_time}
+               "ask_time": ask_time.isoformat()}
 
         resp = requests.post(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json=req)
 

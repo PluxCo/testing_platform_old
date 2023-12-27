@@ -54,7 +54,7 @@ class ImportQuestionForm(BasePrefixedForm):
 
 class PlanQuestionForm(BasePrefixedForm):
     question_id = IntegerField()
-    person_id = IntegerField()
+    person_id = StringField()
     ask_time = DateTimeField("Ask time", format='%d.%m.%Y %H:%M')
 
     plan = SubmitField("Plan it")

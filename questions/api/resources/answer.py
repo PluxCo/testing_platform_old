@@ -67,7 +67,7 @@ class AnswerListResource(Resource):
 
             new_answer = AnswerRecord(person_id=args['person_id'],
                                       question_id=args['question_id'],
-                                      ask_time=['ask_time'],
+                                      ask_time=args['ask_time'],
                                       state=AnswerState.NOT_ANSWERED)
 
             db.add(new_answer)
