@@ -112,7 +112,7 @@ class AnswerRecord(SqlAlchemyBase, SerializerMixin):
     points: Mapped[float] = mapped_column(default=0)
 
     def __repr__(self):
-        return f"<AnswerRecord(text={self.question_id}, state={self.state}, person_id={self.person_id})>"
+        return f"<AnswerRecord(q_id={self.question_id}, state={self.state}, person_id={self.person_id})>"
 
     def calculate_points(self):
         match self.question.type:

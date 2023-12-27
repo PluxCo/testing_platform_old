@@ -1,7 +1,7 @@
 import json
 
 from flask_restful import Resource, reqparse
-from sqlalchemy import select, distinct
+from sqlalchemy import select, distinct, func
 
 from data_accessors.auth_accessor import GroupsDAO
 from models import db_session
@@ -11,6 +11,7 @@ from models.users import Person
 question_stats_data_parser = reqparse.RequestParser()
 question_stats_data_parser.add_argument('question_id', type=str, required=False)
 question_stats_data_parser.add_argument('person_id', type=str, required=False)
+
 
 class ShortStatisticsResource(Resource):
 
@@ -24,22 +25,17 @@ class ShortStatisticsResource(Resource):
                                            join(Question.groups).
                                            where(QuestionGroupAssociation.group_id.in_(pg for pg, pl in person.groups)).
                                            group_by(Question.id)).all()
-                correct_count = 0
-                answered_count = 0
+
+                last_answers = (select(AnswerRecord.id).
+                                where(AnswerRecord.person_id == person.id).
+                                order_by(AnswerRecord.answer_time.desc()).
+                                group_by(AnswerRecord.question_id))
+
+                correct_count = db.scalar(select(func.sum(AnswerRecord.points)).
+                                          where(AnswerRecord.id.in_(last_answers)))
+                answered_count = db.scalar(select(func.count(AnswerRecord.id)).
+                                           where(AnswerRecord.id.in_(last_answers)))
                 questions_count = len(all_questions)
-
-                # TODO: Optimize db requests
-
-                for current_question in all_questions:
-                    answers = db.scalars(select(AnswerRecord).
-                                         where(AnswerRecord.person_id == person.id,
-                                               AnswerRecord.question_id == current_question.id,
-                                               AnswerRecord.state != AnswerState.NOT_ANSWERED).
-                                         order_by(AnswerRecord.ask_time)).all()
-
-                    if answers:
-                        answered_count += 1
-                        correct_count += answers[-1].points
 
                 resp[person.id] = {"correct_count": correct_count,
                                    "answered_count": answered_count,
