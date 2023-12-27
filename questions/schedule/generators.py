@@ -133,20 +133,16 @@ class StatRandomGenerator(GeneratorInterface):
             # Calculate probabilities based on user's performance and other factors
             for i, question in enumerate(person_questions):
                 question: Question
-                correct_count = db.scalar(select(func.count(AnswerRecord.id)).
-                                          join(AnswerRecord.question).
-                                          where(AnswerRecord.person_id == person.id,
-                                                AnswerRecord.question_id == question.id,
-                                                AnswerRecord.person_answer == Question.answer))
+                points_sum = db.scalar(select(func.sum(AnswerRecord.points)).
+                                       where(AnswerRecord.person_id == person.id,
+                                             AnswerRecord.question_id == question.id))
 
-                if correct_count:
-                    last_correct_or_ignored = db.scalar(select(AnswerRecord).
-                                                        join(AnswerRecord.question).
-                                                        where(AnswerRecord.person_id == person.id,
-                                                              AnswerRecord.question_id == question.id,
-                                                              or_(AnswerRecord.person_answer == Question.answer,
-                                                                  AnswerRecord.state != AnswerState.NOT_ANSWERED)).
-                                                        order_by(AnswerRecord.ask_time.desc()))
+                if points_sum:
+                    last_answer = db.scalar(select(AnswerRecord).
+                                            join(AnswerRecord.question).
+                                            where(AnswerRecord.person_id == person.id,
+                                                  AnswerRecord.question_id == question.id).
+                                            order_by(AnswerRecord.ask_time.desc()))
 
                     first_answer = db.scalar(select(AnswerRecord).
                                              where(AnswerRecord.person_id == person.id,
@@ -156,10 +152,10 @@ class StatRandomGenerator(GeneratorInterface):
                     max_target_level = max(
                         gl for pg, gl in person.groups if pg in [x.group_id for x in question.groups])
 
-                    p = (datetime.datetime.now() - last_correct_or_ignored.ask_time).total_seconds() / correct_count
+                    p = (datetime.datetime.now() - last_answer.ask_time).total_seconds() / points_sum
                     p *= np.abs(np.cos(np.pi * np.log2(periods_count + 4))) ** (
                             ((periods_count + 4) ** 2) / 20) + 0.001  # planning questions
-                    p *= np.e ** (-0.5 * (max_target_level - question.level) ** 2)  # normal by level
+                    p *= np.exp(-0.5 * (max_target_level - question.level) ** 2)  # normal by level
 
                     probabilities[i] = p
                 else:
@@ -172,6 +168,7 @@ class StatRandomGenerator(GeneratorInterface):
 
         if with_val:
             increased_avg = (sum(with_val) + without_val_count * max(with_val)) / len(person_questions)
+            # Да это ж круто!
         else:
             increased_avg = 1
 
