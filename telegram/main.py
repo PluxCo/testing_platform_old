@@ -1,4 +1,4 @@
-from bot import bot
+from bot import oldbot
 from api.telegram_api import app
 from models import db_session
 from tools import Settings, setup_logger
@@ -11,5 +11,5 @@ if __name__ == "__main__":
     Settings().setup("data/settings.json", default_settings)
     db_session.global_init("data/database.db")
 
-    bot = bot.start_bot()
+    bot = oldbot.start_bot()
     app.run(debug=False, port=3000, host="0.0.0.0")
