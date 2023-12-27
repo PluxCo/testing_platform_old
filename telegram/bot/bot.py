@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 from threading import Thread
@@ -269,9 +270,9 @@ def get_answer(message: Message):
         if question_message is not None and user_id:
             try:
                 r = requests.post(question_message.webhook,
-                                  json={"user_id": user_id.auth_id, "type": question_message.message_type, "data": {
-                                      "question_message_id": message.reply_to_message.id,
-                                      "answer_message_id": message.id,
+                                  json={"user_id": user_id.auth_id, "type": AnswerType.REPLY.value, "data": {
+                                      "reply_to_message_id": message.reply_to_message.id,
+                                      "message_id": message.id,
                                       "answer": message.text
                                   }
                                         })

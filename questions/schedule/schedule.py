@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import time
 from threading import Thread
@@ -8,6 +9,8 @@ from models.users import Person
 from schedule.generators import Session
 from tools import Settings
 
+
+# FIXME: God rewrite this weird Schedule by using basic python module.
 
 class Schedule(Thread):
     def __init__(self, callback):
@@ -49,11 +52,14 @@ class Schedule(Thread):
             time.sleep(1)
 
     def task(self):
-        users_sessions = []
-        for person in Person.get_all_people():
-            session = Session(person)
-            session.generate_questions()
-            users_sessions.append(session)
-            print(person)
+        try:
+            users_sessions = []
+            for person in Person.get_all_people():
+                session = Session(person)
+                session.generate_questions()
+                users_sessions.append(session)
+                print(person)
 
-        self.connector.transfer(users_sessions)
+            self.connector.transfer(users_sessions)
+        except Exception as e:
+            logging.error(e)

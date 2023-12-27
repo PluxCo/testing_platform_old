@@ -57,3 +57,29 @@ document.querySelector('#delete-btn').addEventListener('click', function () {
     document.getElementById('edit_button').setAttribute('disabled', '');
     document.getElementById('delete_button').setAttribute('disabled', '');
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    var is_openCheckbox = document.getElementById("createquestionform-is_open");
+    var optionsField = document.getElementById("createquestionform-options");
+    var answerField = document.getElementById("createquestionform-answer");
+    var optionsLabel = document.getElementById("createquestionform-options-label")
+    var answerLabel = document.getElementById("createquestionform-answer-label")
+    is_openCheckbox.addEventListener("change", function () {
+        if (is_openCheckbox.checked) {
+            optionsField.style.display = "none";
+            optionsLabel.style.display = "none";
+            answerLabel.textContent = "Answer";
+            answerField.style.height = "12rem";
+            optionsField.value = "";
+            answerField.placeholder = "На мой взгляд, это mkdir."
+
+        } else {
+            optionsField.style.display = "block";
+            optionsLabel.style.display = "block";
+            answerLabel.textContent = "Answer index";
+            answerField.style.height = "1rem";
+            answerField.placeholder = "1"
+
+        }
+    });
+});

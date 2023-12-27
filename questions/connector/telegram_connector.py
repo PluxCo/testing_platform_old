@@ -1,13 +1,12 @@
 import enum
 import json
 import os
-import sys
 
 import requests
 from flask_restful import Resource, reqparse
 
 from connector.base_connector import ConnectorInterface
-from models.questions import AnswerRecord
+from models.questions import AnswerRecord, QuestionType
 from schedule.generators import Session
 
 
@@ -18,6 +17,12 @@ class AnswerType(enum.Enum):
     BUTTON = 0
     MESSAGE = 1
     REPLY = 2
+
+
+class MessageType(enum.Enum):
+    SIMPLE = 0
+    WITH_BUTTONS = 1
+    MOTIVATION = 2
 
 
 class TelegramConnector(ConnectorInterface):
@@ -53,12 +58,12 @@ class TelegramConnector(ConnectorInterface):
 
         for session in sessions:
             current_question = session.next_question()
-            if current_question is not None:
+            if current_question is not None and current_question.question is not None and current_question.question.type == QuestionType.TEST:
 
                 # Prepare the message for sending to TelegramService
                 message = {
                     "user_id": current_question.person_id,
-                    "type": 1,
+                    "type": MessageType.WITH_BUTTONS.value,
                     "data": {
                         "text": current_question.question.text,
                         "buttons": ["Не знаю"] + json.loads(current_question.question.options)
@@ -66,13 +71,22 @@ class TelegramConnector(ConnectorInterface):
                 }
                 request["messages"].append(message)
                 message_relation.append((session, current_question))
-
+            elif current_question is not None and current_question.question is not None and current_question.question.type == QuestionType.OPEN:
+                # Prepare the message for sending to TelegramService
+                message = {
+                    "user_id": current_question.person_id,
+                    "type": MessageType.SIMPLE.value,
+                    "data": {
+                        "text": current_question.question.text,
+                    }
+                }
+                request["messages"].append(message)
+                message_relation.append((session, current_question))
         if not request["messages"]:
             return
 
         # Send messages to TelegramService
         resp = requests.post(f"{self.TG_API}/message", json=request)
-        print(resp, resp.text, file=sys.stderr)
 
         # Map message IDs to session-question-answer tuples
         for i, message_id in enumerate(resp.json()["message_ids"]):
@@ -98,7 +112,7 @@ class TelegramConnector(ConnectorInterface):
                     request = {"webhook": self.webhook,
                                "messages": [{
                                    "user_id": registered_answer.person_id,
-                                   "type": 0,
+                                   "type": MessageType.SIMPLE.value,
                                    "data": {
                                        "text": "Ответ верный!"
                                    }
@@ -108,7 +122,7 @@ class TelegramConnector(ConnectorInterface):
                     request = {"webhook": self.webhook,
                                "messages": [{
                                    "user_id": registered_answer.person_id,
-                                   "type": 0,
+                                   "type": MessageType.SIMPLE.value,
                                    "data": {
                                        "text": "Ответ неверный ;("
                                    }
@@ -116,8 +130,18 @@ class TelegramConnector(ConnectorInterface):
                     requests.post(f"{self.TG_API}/message", json=request)
 
             case AnswerType.REPLY:
-                # Handle REPLY type if needed in the future
-                pass
+                session, question_answer = self.alive_sessions.pop(data["reply_to_message_id"])
+                registered_answer = session.register_answer(question_answer, str(data["answer"]))
+                request = {"webhook": self.webhook,
+                           "messages": [{
+                               "user_id": registered_answer.person_id,
+                               "type": MessageType.SIMPLE.value,
+                               "data": {
+                                   "text": "Понятия не имею правильный ли ответ, но не переживай, я все записал!"
+                               }
+                           }]}
+                requests.post(f"{self.TG_API}/message", json=request)
+
             case AnswerType.MESSAGE:
                 # Handle MESSAGE type if needed in the future
                 pass

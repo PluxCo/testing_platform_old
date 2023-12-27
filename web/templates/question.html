@@ -41,10 +41,10 @@
                                 {{ create_question_form.subject(class_="form-control", placeholder="Bash") }}
                             </div>
                             <div class="col-4 d-flex flex-column gap-1">
-                                {{ create_question_form.options.label(class_="form-label") }}
+                                {{ create_question_form.options.label(class_="form-label", id_="createquestionform-options-label") }}
                                 {{ create_question_form.options(class_="form-control h-100", placeholder="mkdir\ntouch\ncd\nls") }}
 
-                                {{ create_question_form.answer.label(class_="form-label") }}
+                                {{ create_question_form.answer.label(class_="form-label", id_="createquestionform-answer-label") }}
                                 {{ create_question_form.answer(class_="form-control") }}
                             </div>
                             <div class="col-4 d-flex flex-column gap-1">
@@ -55,9 +55,14 @@
                                 {{ create_question_form.level(class_="form-control") }}
 
                                 {{ create_question_form.article.label(class_="form-label") }}
-                                {{ create_question_form.article(class_="form-control", placeholder="https://github.com/") }}
+                                {{ create_question_form.article(class_="form-control checkbox", placeholder="https://github.com/") }}
 
                             </div>
+                            <div class="col-3 d-flex flex-column mt-3">
+                                <p> {{ create_question_form.is_open(class_="form-check-input") }} {{ create_question_form.is_open.label(class_="form-check-label") }}
+                                </p>
+                            </div>
+
                         </div>
                         {% for field, error in create_question_form.errors.items() %}
                             <div class="alert alert-warning mt-3">

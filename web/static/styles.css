@@ -83,3 +83,8 @@ body.modal-open {
     margin-top: 20px;
 }
 
+#createquestionform-options,
+#createquestionform-answer {
+    transition: height 1s ease;
+}
+

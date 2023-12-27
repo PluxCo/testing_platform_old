@@ -94,7 +94,10 @@ def questions_ajax():
     questions = questions[offset:offset + length]
 
     for q in questions:
-        options = "<ol>" + "".join(f"<li>{option}</li>" for option in q.options) + "</ol>"
+        if q.options:
+            options = "<ol>" + "".join(f"<li>{option}</li>" for option in q.options) + "</ol>"
+        else:
+            options = ""
         groups = []
         for g in q.groups:
             try:
@@ -134,7 +137,7 @@ def questions_page():
                                 groups=selected_groups,
                                 level=create_question_form.level.data,
                                 article=create_question_form.article.data,
-                                q_type=QuestionType.TEST)
+                                q_type=QuestionType.OPEN if create_question_form.is_open else QuestionType.TEST)
 
         QuestionsDAO.create_question(new_question)
 

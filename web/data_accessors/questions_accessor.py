@@ -63,10 +63,13 @@ class QuestionsDAO:
 
     @staticmethod
     def _construct(resp):
-        q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
-                     resp["answer"], [g["group_id"] for g in resp["groups"]],
-                     resp["level"], resp["article_url"],
-                     QuestionType(resp["type"]))
+        try:
+            q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
+                         resp["answer"], [g["group_id"] for g in resp["groups"]],
+                         resp["level"], resp["article_url"],
+                         QuestionType(resp["type"]))
+        except KeyError as e:
+            return None
         return q
 
     @staticmethod

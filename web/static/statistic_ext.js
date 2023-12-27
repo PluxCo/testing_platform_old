@@ -26,7 +26,7 @@ socket.on("question_info", function (data) {
     modal.querySelector(".q_text").innerHTML = data.question.text;
     modal.querySelector(".q_groups").innerHTML = data.question.groups.map((g) => g.name).join(", ");
     modal.querySelector(".q_level").innerHTML = data.question.level;
-    modal.querySelector(".q_correct").innerHTML = data.question.options[data.question.answer - 1];
+    modal.querySelector(".q_correct").innerHTML = data.question.options ? data.question.options[data.question.answer - 1] : data.question.answer;
 
     let answers_tbl = modal.querySelector(".q_answers");
     answers_tbl.innerHTML = "";
@@ -47,7 +47,7 @@ socket.on("question_info", function (data) {
                 tr_style = "table-secondary";
                 break;
         }
-        answers_tbl.innerHTML += `<tr class="${tr_style}"><td>${data.question.options[answer.person_answer - 1]}</td>
+        answers_tbl.innerHTML += `<tr class="${tr_style}"><td>${data.question.options ? data.question.options[answer.person_answer - 1] : answer.person_answer}</td>
 <td>${answer.ask_time}</td>
 <td>${answer.answer_time}</td></tr>`;
     });
