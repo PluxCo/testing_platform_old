@@ -1,4 +1,5 @@
 import json
+import logging
 
 from flask_restful import Resource, reqparse
 from sqlalchemy import select, distinct, func
@@ -26,10 +27,10 @@ class ShortStatisticsResource(Resource):
                                            where(QuestionGroupAssociation.group_id.in_(pg for pg, pl in person.groups)).
                                            group_by(Question.id)).all()
 
-                last_answers = (select(AnswerRecord.id).
-                                where(AnswerRecord.person_id == person.id).
-                                order_by(AnswerRecord.answer_time.desc()).
-                                group_by(AnswerRecord.question_id))
+                last_answers = (select(AnswerRecord.id)
+                                .where(AnswerRecord.person_id == person.id)
+                                .group_by(AnswerRecord.question_id)
+                                .having(AnswerRecord.answer_time == func.max(AnswerRecord.answer_time)))
 
                 correct_count = db.scalar(select(func.sum(AnswerRecord.points)).
                                           where(AnswerRecord.id.in_(last_answers)))
@@ -45,96 +46,46 @@ class ShortStatisticsResource(Resource):
 
 
 class UserStatisticsResource(Resource):
-    # FIXME: Fix this weird and very weird statistics
     def get(self, person_id):
         person = Person.get_person(person_id)
-        subject_stat = []
-        bar_stat = [[], [], []]
+
+        ls_stat = []
 
         with db_session.create_session() as db:
-            person_subjects = db.scalars(select(distinct(Question.subject)).join(Question.groups).
-                                         where(QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups)))
+            person_subjects = (select(distinct(Question.subject)).join(Question.groups).
+                               where(QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups)))
 
-            for name in person_subjects:
-                all_questions = db.scalars(select(Question).
-                                           join(Question.groups).
-                                           where(Question.subject == name,
-                                                 QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups)).
-                                           group_by(Question.id)).all()
+            last_user_answers = (select(AnswerRecord.id)
+                                 .where(AnswerRecord.person_id == person.id)
+                                 .group_by(AnswerRecord.question_id)
+                                 .having(AnswerRecord.answer_time == func.max(AnswerRecord.answer_time)))
 
-                correct_count = 0
-                correct_count_by_level = {}
-                answered_count = 0
-                answered_count_by_level = {}
-                questions_count = len(all_questions)
-                person_answers = []
+            total_points, total_answered_count = db.execute(select(func.sum(AnswerRecord.points),
+                                                                   func.count(AnswerRecord.question_id))
+                                                            .where(AnswerRecord.id.in_(last_user_answers))).one()
 
-                for current_question in all_questions:
-                    answers = db.scalars(select(AnswerRecord).
-                                         where(AnswerRecord.person_id == person.id,
-                                               AnswerRecord.question_id == current_question.id,
-                                               AnswerRecord.state != AnswerState.NOT_ANSWERED).
-                                         order_by(AnswerRecord.ask_time)).all()
+            # points and answered_count by subjects and levels
+            level_subject_info = db.execute(select(Question.level,
+                                                   Question.subject,
+                                                   func.sum(AnswerRecord.points),
+                                                   func.count(AnswerRecord.question_id))
+                                            .join(AnswerRecord.question)
+                                            .where(AnswerRecord.id.in_(last_user_answers))
+                                            .group_by(Question.level, Question.subject)).all()
 
-                    question_correct_count = len([1 for a in answers if a.person_answer == current_question.answer])
-                    question_incorrect_count = len(answers) - question_correct_count
+            questions_count = db.execute(select(Question.level, Question.subject, func.count(distinct(Question.id)))
+                                         .join(Question.groups)
+                                         .where(QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups))
+                                         .group_by(Question.level, Question.subject)).all()
 
-                    answer_state = "NOT_ANSWERED"
-                    if answers:
-                        answered_count += 1
+        ls_stat = [{"level": level,
+                    "subject": subj,
+                    "points": points,
+                    "answered_count": count,
+                    "questions_count": next(q_c for q_l, q_s, q_c in questions_count if q_l == level and q_s == subj)}
+                   for level, subj, points, count in level_subject_info]
 
-                        if answers[-1].question.level not in answered_count_by_level.keys():
-                            answered_count_by_level[answers[-1].question.level] = 0
-                            correct_count_by_level[answers[-1].question.level] = 0
-
-                        answered_count_by_level[answers[-1].question.level] += 1
-
-                        if answers[-1].state == AnswerState.TRANSFERRED:
-                            answer_state = "IGNORED"
-                        elif answers[-1].question.answer == answers[-1].person_answer:
-                            correct_count += 1
-                            correct_count_by_level[answers[-1].question.level] += 1
-                            answer_state = "CORRECT"
-                        else:
-                            answer_state = "INCORRECT"
-
-                    person_answers.append({"current_question": current_question.to_dict(),
-                                           "answer_state": answer_state,
-                                           "question_correct_count": question_correct_count,
-                                           "question_incorrect_count": question_incorrect_count})
-
-                subject_stat.append({"name": name,
-                                     "correct_count": correct_count,
-                                     "answered_count": answered_count,
-                                     "questions_count": questions_count,
-                                     "person_answers": person_answers})
-                progress_by_level = {}
-
-                for level in answered_count_by_level:
-                    progress_by_level[level] = round(
-                        correct_count_by_level[level] / answered_count_by_level[level] * 100,
-                        1)
-
-                bar_stat[0].append(name)
-                bar_stat[1].append(progress_by_level)
-                if progress_by_level:
-                    bar_stat[2].append(max(progress_by_level, key=progress_by_level.get))
-            if bar_stat[2]:
-                max_level = max(bar_stat[2])
-            else:
-                max_level = 0
-            progress_by_level = []
-            for i in range(0, max_level):
-                progress_by_level.append([])
-                for j in range(len(bar_stat[1])):
-                    if (i + 1) in bar_stat[1][j].keys():
-                        progress_by_level[i].append(bar_stat[1][j][i + 1])
-                    else:
-                        progress_by_level[i].append(0)
-
-            bar_data = [bar_stat[0], progress_by_level, max_level]
-
-        resp = {"subject_statistics": subject_stat, "bar_data": bar_data}
+        resp = {"ls": ls_stat, "total_point": total_points, "total_answered_count": total_answered_count}
 
         return resp, 200
 

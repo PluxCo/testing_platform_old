@@ -288,26 +288,6 @@ def statistic_page(person_id):
     if plan_form.plan.data and plan_form.validate():
         AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
 
-    # for check_time in [datetime.datetime.now() + datetime.timedelta(x / 3) for x in range(-120, 1)]:
-    #     correct_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.answer_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
-    #                                                                    Question.answer == QuestionAnswer.person_answer))
-    #     incorrect_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.answer_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
-    #                                                                    Question.answer != QuestionAnswer.person_answer))
-    #     ignored_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.ask_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.TRANSFERRED,
-    #                                                                    QuestionAnswer.person_answer == None))
-    #
-    #     timeline.append((check_time.timestamp() * 1000, correct_questions_amount, incorrect_questions_amount,
-    #                      ignored_questions_amount))
-
     return render_template("statistic.html", person=person, subjects=subject_stat,
                            timeline=[], bar_data=json.dumps(bar_data, ensure_ascii=False),
                            pause_form=pause_form, plan_form=plan_form, title="Statistics: " + person.full_name)
