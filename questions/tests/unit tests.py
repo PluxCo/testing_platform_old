@@ -3,11 +3,13 @@ import json
 import unittest
 
 from faker import Faker
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy.orm import Session
 
 from api.api import app as restful_api
-from models.db_session import global_init, create_session
+from models import db_session
+from models.db_session import global_init, create_session, SqlAlchemyBase
 from models.questions import QuestionGroupAssociation, Question, QuestionType, AnswerRecord, AnswerState
-from tools import Settings
 
 fake = Faker()
 
@@ -31,11 +33,12 @@ class TestDatabaseFunctions(unittest.TestCase):
 class TestQuestionGroupAssociation(unittest.TestCase):
     def setUp(self):
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.session = create_session()
 
     def tearDown(self):
         # Clean up resources after each test
+        self.session.rollback()
         self.session.close()
 
     def test_association_attributes(self):
@@ -65,11 +68,12 @@ class TestQuestionGroupAssociation(unittest.TestCase):
 class TestQuestion(unittest.TestCase):
     def setUp(self):
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.session = create_session()
 
     def tearDown(self):
         # Clean up resources after each test
+        self.session.rollback()
         self.session.close()
 
     def test_question_attributes(self):
@@ -119,11 +123,12 @@ class TestAnswerRecord(unittest.TestCase):
     def setUp(self):
         # Use an in-memory database for testing
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.session = create_session()
 
     def tearDown(self):
         # Clean up resources after each test
+        self.session.rollback()
         self.session.close()
 
     def test_answer_record_attributes(self):
@@ -216,12 +221,13 @@ class TestAnswerResource(unittest.TestCase):
     def setUp(self):
         # Use an in-memory database for testing
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.app = restful_api.test_client()
         self.session = create_session()
 
     def tearDown(self):
         # Clean up resources after each test
+        self.session.rollback()
         self.session.close()
 
     def test_get_existing_answer(self):
@@ -260,12 +266,13 @@ class TestAnswerListResource(unittest.TestCase):
     def setUp(self):
         # Use an in-memory database for testing
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.app = restful_api.test_client()
         self.session = create_session()
 
     def tearDown(self):
         # Drop all tables and close the session
+        self.session.rollback()
         self.session.close()
 
     def test_get_method_with_filtering(self):
@@ -310,12 +317,13 @@ class TestQuestionResource(unittest.TestCase):
     def setUp(self):
         # Use an in-memory database for testing
         db_file = ":memory:"
-        global_init(db_file)
+        global_init(db_file, drop_db=True)
         self.app = restful_api.test_client()
         self.session = create_session()
 
     def tearDown(self):
         # Drop all tables and close the session
+        self.session.rollback()
         self.session.close()
 
     def test_get_method(self):
@@ -391,8 +399,112 @@ class TestQuestionResource(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
 
             # Check if the question is deleted
+            self.session.close()
+            self.session = create_session()
             deleted_question = self.session.get(Question, question.id)
             self.assertIsNone(deleted_question)
+
+
+class TestQuestionsListResource(unittest.TestCase):
+    def setUp(self):
+        # Use an in-memory database for testing
+        db_file = ":memory:"
+        global_init(db_file, drop_db=True)
+        self.app = restful_api.test_client()
+        self.session = create_session()
+
+    def tearDown(self):
+        # Drop all tables and close the session
+        self.session.rollback()
+        self.session.close()
+
+    def test_get_method_with_search(self):
+        # Create test Questions
+        question_1 = Question(
+            text='What is the capital of France?',
+            subject='Geography',
+            options=json.dumps(['Berlin', 'Paris', 'London']),
+            answer='Paris',
+            level=2,
+            article_url='https://example.com/geography',
+            type=QuestionType.TEST
+        )
+        question_2 = Question(
+            text='What is the capital of Germany?',
+            subject='Geography',
+            options=json.dumps(['Berlin', 'Paris', 'London']),
+            answer='Berlin',
+            level=2,
+            article_url='https://example.com/geography',
+            type=QuestionType.TEST
+        )
+        self.session.add_all([question_1, question_2])
+        self.session.commit()
+
+        # Make the request with a search string
+        with self.app as client:
+            response = client.get('/question/', json={"search_string": "Germany", "column_to_order": "text",
+                                                      "descending": False})
+            result_json = response.get_json()
+
+            # Assertions
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(1, len(result_json))
+            self.assertEqual(result_json[0]['text'], 'What is the capital of Germany?')
+
+    def test_get_method_without_search(self):
+        # Create test Questions
+        question_1 = Question(
+            text='What is the capital of France?',
+            subject='Geography',
+            options=json.dumps(['Berlin', 'Paris', 'London']),
+            answer='Paris',
+            level=2,
+            article_url='https://example.com/geography',
+            type=QuestionType.TEST
+        )
+        question_2 = Question(
+            text='What is the capital of Germany?',
+            subject='Geography',
+            options=json.dumps(['Berlin', 'Paris', 'London']),
+            answer='Berlin',
+            level=2,
+            article_url='https://example.com/geography',
+            type=QuestionType.TEST
+        )
+        self.session.add_all([question_1, question_2])
+        self.session.commit()
+
+        # Make the request without a search string
+        with self.app as client:
+            response = client.get('/question/', json={"search_string": "", "column_to_order": "",
+                                                      "descending": False})
+            result_json = response.get_json()
+
+            # Assertions
+            print()
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(2, len(result_json))
+
+    def test_post_method(self):
+        # Make the request to create a new question
+        with self.app as client:
+            response = client.post('/question/', json={
+                'text': 'What is the capital of Spain?',
+                'subject': 'Geography',
+                'options': ['Madrid', 'Barcelona', 'Seville'],
+                'answer': '0',
+                'groups': ['group1'],
+                'level': 2,
+                'article_url': 'https://example.com/',
+                'type': 0
+            })
+
+            # Assertions
+            self.assertEqual(200, response.status_code)
+            result_json = response.get_json()
+            self.assertEqual('What is the capital of Spain?', result_json['text'])
+            self.assertEqual('Geography', result_json['subject'])
 
 
 if __name__ == '__main__':
