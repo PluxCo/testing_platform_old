@@ -1,15 +1,15 @@
 import datetime
 import json
+import os
 import unittest
+import uuid
 
 from faker import Faker
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.orm import Session
 
 from api.api import app as restful_api
-from models import db_session
-from models.db_session import global_init, create_session, SqlAlchemyBase
+from models.db_session import global_init, create_session
 from models.questions import QuestionGroupAssociation, Question, QuestionType, AnswerRecord, AnswerState
+from tools import Settings
 
 fake = Faker()
 
@@ -505,6 +505,60 @@ class TestQuestionsListResource(unittest.TestCase):
             result_json = response.get_json()
             self.assertEqual('What is the capital of Spain?', result_json['text'])
             self.assertEqual('Geography', result_json['subject'])
+
+
+class TestSettingsResource(unittest.TestCase):
+
+    def setUp(self):
+        """
+        Some pretty weird stuff going on here, but let me explain. I create unique files just so that the singleton
+        object is safe and calm. Yeah, I delete the file using os stuff but who cares, right? <3
+        """
+
+        default_settings = {
+            "time_period": datetime.timedelta(seconds=30),
+            "from_time": datetime.time(0),
+            "to_time": datetime.time(23, 59),
+            "week_days": [d for d in range(7)],
+        }
+        self.settings_file = str(uuid.uuid4())
+        Settings().setup(self.settings_file, default_settings)
+        self.client = restful_api.test_client()
+
+    def tearDown(self) -> None:
+        """
+        What are you looking at? Yes, I delete the file just like that. It's safe, trust me.
+        Don't let your trust issues be involved in it. Let them, when I accidentally delete files with all the code.
+        """
+
+        os.remove(self.settings_file)
+
+    def test_get_settings(self):
+        response = self.client.get('/settings/')
+
+        # Assertions
+        default_settings = {
+            "time_period": datetime.timedelta(seconds=30).total_seconds(),
+            "from_time": datetime.time(0).isoformat(),
+            "to_time": datetime.time(23, 59).isoformat(),
+            "week_days": [d for d in range(7)],
+        }
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(default_settings, response.json)
+
+    def test_update_settings(self):
+        new_settings = {
+            'time_period': datetime.timedelta(seconds=3600).total_seconds(),
+            'from_time': datetime.time(9, 0).isoformat(),
+            'to_time': datetime.time(18, 0).isoformat(),
+            'week_days': [1, 2, 3]
+        }
+
+        response = self.client.post('/settings/', json=new_settings)
+
+        # Assertions
+        self.assertEqual(200, response.status_code)
+        self.assertEqual(new_settings, response.json)
 
 
 if __name__ == '__main__':
