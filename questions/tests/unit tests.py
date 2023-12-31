@@ -377,6 +377,33 @@ class TestQuestionResource(unittest.TestCase):
             self.assertEqual('https://example.com/AAAAAAAAAA', result_json['article_url'])
             self.assertEqual(0, result_json['type'])
 
+    def test_open_post_method(self):
+        # Make the request to create a new question
+        with self.app as client:
+            response = client.post('/question/', json={
+                'text': 'What is the capital of Germany?',
+                'subject': 'Geography',
+                'options': [],
+                'answer': 'Berlin',
+                'groups': ['group1', 'group2'],
+                'level': 3,
+                'article_url': 'https://example.com/AAAAAAAAAA',
+                'type': 1
+            })
+
+            # Assertions
+            self.assertEqual(200, response.status_code)
+
+            result_json = response.get_json()
+            self.assertEqual('What is the capital of Germany?', result_json['text'])
+            self.assertEqual('Geography', result_json['subject'])
+            self.assertEqual(None, result_json['options'])
+            self.assertEqual('Berlin', result_json['answer'])
+            self.assertEqual([{'group_id': 'group1'}, {'group_id': 'group2'}], result_json['groups'])
+            self.assertEqual(3, result_json['level'])
+            self.assertEqual('https://example.com/AAAAAAAAAA', result_json['article_url'])
+            self.assertEqual(1, result_json['type'])
+
     def test_delete_method(self):
         # Create a test Question
         question = Question(
