@@ -1,4 +1,5 @@
 import json
+import logging
 
 from flask_restful import Resource, reqparse
 from sqlalchemy import select, update, delete, or_, desc, asc
@@ -144,13 +145,12 @@ class QuestionsListResource(Resource):
                                        order_by(column_to_order))
                 db_question = [q.to_dict(rules=("-groups.id", "-groups.question_id")) for q in
                                questions]
-                for q in db_question:
-                    q["options"] = json.loads(q["options"])
             else:
                 # Retrieve Question instances from the database and convert them to dictionaries
                 db_question = [q.to_dict(rules=("-groups.id", "-groups.question_id")) for q in
                                db.scalars(select(Question))]
-                for q in db_question:
+            for q in db_question:
+                if q["options"]:
                     q["options"] = json.loads(q["options"])
 
         return db_question, 200
