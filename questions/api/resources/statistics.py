@@ -2,7 +2,7 @@ import json
 import logging
 
 from flask_restful import Resource, reqparse
-from sqlalchemy import select, distinct, func
+from sqlalchemy import select, distinct, func, case
 
 from data_accessors.auth_accessor import GroupsDAO
 from models import db_session
@@ -78,14 +78,43 @@ class UserStatisticsResource(Resource):
                                          .where(QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups))
                                          .group_by(Question.level, Question.subject)).all()
 
-        ls_stat = [{"level": level,
-                    "subject": subj,
-                    "points": points,
-                    "answered_count": count,
-                    "questions_count": next(q_c for q_l, q_s, q_c in questions_count if q_l == level and q_s == subj)}
-                   for level, subj, points, count in level_subject_info]
+            user_question_ids = (select(distinct(Question.id))
+                                 .join(Question.groups)
+                                 .where(QuestionGroupAssociation.group_id.in_(pg[0] for pg in person.groups)))
 
-        resp = {"ls": ls_stat, "total_point": total_points, "total_answered_count": total_answered_count}
+            # contains total/last points and answered/transferred counts for all questions that available for user
+            questions = db.execute(select(Question,
+                                          func.coalesce(func.sum(AnswerRecord.points), 0),
+                                          func.count(case((AnswerRecord.state == AnswerState.ANSWERED, 1))),
+                                          func.count(case((AnswerRecord.state == AnswerState.TRANSFERRED, 1))),
+                                          func.coalesce(
+                                              case((AnswerRecord.answer_time == func.max(AnswerRecord.answer_time),
+                                                    AnswerRecord.points)), 0)
+                                          )
+                                   .outerjoin(AnswerRecord, Question.id == AnswerRecord.question_id)
+                                   .where((AnswerRecord.person_id == person_id) | (AnswerRecord.person_id == None),
+                                          Question.id.in_(user_question_ids))
+                                   .group_by(Question.id)).all()
+
+            ls_stat = [{"level": level,
+                        "subject": subj,
+                        "points": points,
+                        "answered_count": count,
+                        "questions_count": next(q_c for q_l, q_s, q_c in questions_count
+                                                if q_l == level and q_s == subj)}  # that's lmao find O(N^2)
+                       for level, subj, points, count in level_subject_info]
+
+            questions_stat = [{"question": q.to_dict(only=("id", "text", "subject", "level")),
+                               "total_points": total_points,
+                               "last_points": last_points,
+                               "answered_count": answered_count,
+                               "transferred_count": transferred_count}
+                              for q, total_points, answered_count, transferred_count, last_points in questions]
+
+        resp = {"ls": ls_stat,
+                "questions": questions_stat,
+                "total_point": total_points,
+                "total_answered_count": total_answered_count}
 
         return resp, 200
 
