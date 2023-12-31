@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+from itertools import groupby
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_socketio import SocketIO, emit
@@ -282,14 +283,25 @@ def statistic_page(person_id):
 
     user_stats = StatisticsDAO.get_user_statistics(person_id)
 
-    subject_stat = user_stats['subject_statistics']
-    bar_data = user_stats['bar_data']
+    ls_stat = user_stats['ls']
+    questions_stat = user_stats["questions"]
+    # bar_data = user_stats['bar_data']
+
+    questions_stat.sort(key=lambda x: x["question"]["subject"])
+    subjects = []
+    for subject, rows in groupby(questions_stat, lambda x: x["question"]["subject"]):
+        last_answers_stat = [s for s in ls_stat if s["subject"] == subject]
+        subjects.append({"name": subject,
+                         "points": sum(s["points"] for s in last_answers_stat),
+                         "answered_count": sum(s["answered_count"] for s in last_answers_stat),
+                         "questions_count": sum(s["questions_count"] for s in last_answers_stat),
+                         "questions": list(rows)})
 
     if plan_form.plan.data and plan_form.validate():
         AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
 
-    return render_template("statistic.html", person=person, subjects=subject_stat,
-                           timeline=[], bar_data=json.dumps(bar_data, ensure_ascii=False),
+    return render_template("statistic.html", person=person, subjects=subjects,
+                           timeline=[], bar_data=json.dumps([], ensure_ascii=False),
                            pause_form=pause_form, plan_form=plan_form, title="Statistics: " + person.full_name)
 
 

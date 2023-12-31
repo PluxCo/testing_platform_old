@@ -167,7 +167,7 @@
                                     aria-controls="subj_{{ loop.index }}">
                                 <span>{{ s['name'] }}</span>
                                 <span class="float-end mx-5 fs-5">
-                                    <span class="text-success">{{ s['correct_count'] }}</span> /
+                                    <span class="text-success">{{ s['points'] }}</span> /
                                     <span class="text-info">{{ s['answered_count'] }}</span> /
                                     <span class="text-secondary">{{ s['questions_count'] }}</span>
                                 </span>
@@ -179,27 +179,19 @@
                                 <table class="table align-middle">
                                     <caption>Last answers</caption>
                                     <tr>
-                                        {% for answer in s['person_answers'] %}
-                                            <td class="text-center col-1">{{ answer['current_question'].text }}</td>
+                                        {% for q in s['questions'] %}
+                                            <td class="text-center col-1">{{ q["question"]["text"] }}</td>
                                         {% endfor %}
                                     </tr>
                                     <tr>
-                                        {% for answer in s['person_answers'] %}
-                                            {% set td_status = "" %}
-                                            {% if answer['answer_state'] == "CORRECT" %}
-                                                {% set td_status = "table-success" %}
-                                            {% elif answer['answer_state'] == "INCORRECT" %}
-                                                {% set td_status = "table-warning" %}
-                                            {% elif answer['answer_state'] == "IGNORED" %}
-                                                {% set td_status = "table-info" %}
-                                            {% elif answer['answer_state'] == "NOT_ANSWERED" %}
-                                                {% set td_status = "table-secondary" %}
-                                            {% endif %}
-
-                                            <td class="text-center {{ td_status }} question_stat"
-                                                data-question="{{ answer['current_question']['id'] }}">
-                                                <span class="text-success">{{ answer['question_correct_count'] }}</span> /
-                                                <span class="text-danger">{{ answer['question_incorrect_count'] }}</span>
+                                        {% for q in s["questions"] %}
+                                            <td class="text-center question_stat"
+                                                data-question="{{ q['question']['id'] }}"
+                                                data-answered-count="{{ q["answered_count"] }}"
+                                                data-last-points="{{ q["last_points"] }}">
+                                                <span class="text-success">{{ q['total_points'] }}</span>
+                                                /
+                                                <span class="text-danger">{{ q["answered_count"] - q['total_points'] }}</span>
                                             </td>
                                         {% endfor %}
                                     </tr>

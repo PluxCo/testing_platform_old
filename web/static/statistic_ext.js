@@ -17,6 +17,10 @@ window.onload = function () {
                 question_id: parseInt(event.currentTarget.dataset.question)
             });
         });
+
+        let lastHue = 120 * question_stat.dataset.lastPoints;
+        let lastAlpha = question_stat.dataset.answeredCount > 0 ? 100 : 0;
+        question_stat.style.backgroundColor = `hsl(${lastHue}deg 30% 90% / ${lastAlpha}%)`;
     });
 };
 
