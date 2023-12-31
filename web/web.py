@@ -285,7 +285,6 @@ def statistic_page(person_id):
 
     ls_stat = user_stats['ls']
     questions_stat = user_stats["questions"]
-    # bar_data = user_stats['bar_data']
 
     questions_stat.sort(key=lambda x: x["question"]["subject"])
     subjects = []
@@ -301,7 +300,7 @@ def statistic_page(person_id):
         AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
 
     return render_template("statistic.html", person=person, subjects=subjects,
-                           timeline=[], bar_data=json.dumps([], ensure_ascii=False),
+                           timeline=[], bar_data=ls_stat,
                            pause_form=pause_form, plan_form=plan_form, title="Statistics: " + person.full_name)
 
 

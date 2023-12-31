@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 
 {% block prescripts %}
-    <script src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
     <script>
         config = {
             timeline: {{ timeline | tojson | safe }},
-            bar_data: {{ bar_data | safe }}
+            bar_data: {{ bar_data | tojson }}
         }
     </script>
-    <script type="module" src="{{ url_for('static', filename='charts.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
 {% endblock %}
 
 {% block content %}

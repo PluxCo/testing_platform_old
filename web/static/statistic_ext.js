@@ -63,4 +63,75 @@ socket.on("question_info", function (data) {
         datable.classList.remove("placeholder", "col-5");
     });
 
-})
+});
+
+let subjectsCount = new Set(config.bar_data.map(l => l.subject)).size;
+let levelsCount = new Set(config.bar_data.map(l => l.level)).size;
+
+let heatmapData = {
+    datasets: [{
+        data: [],
+        backgroundColor(context) {
+            const value = context.dataset.data[context.dataIndex].v;
+            const hue = value / 100 * 120;
+            return `hsl(${hue}deg 50% 50%)`;
+        },
+        borderWidth: 1,
+        width: ({chart}) => (chart.chartArea || {}).width / subjectsCount - 1,
+        height: ({chart}) => (chart.chartArea || {}).height / levelsCount - 1
+    }]
+};
+
+for (let u of config.bar_data) {
+    if (u.answered_count != 0) {
+        heatmapData.datasets[0].data.push({x: u.subject, y: u.level, v: u.points / u.answered_count * 100});
+    }
+}
+
+const heatmapConfig = {
+    type: 'matrix',
+    data: heatmapData,
+    options: {
+        plugins: {
+            legend: false,
+            tooltip: {
+                callbacks: {
+                    title(context) {
+                        return `${context[0].raw.v}%`;
+                    },
+                    label(context) {
+                        const v = context.dataset.data[context.dataIndex];
+                        return [`Subject: ${v.x}`, `Level: ${v.y}`, `Knowledge: ${v.v}%`];
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                type: 'category',
+                ticks: {
+                    display: true
+                },
+                grid: {
+                    display: false
+                }
+            },
+            y: {
+                reverse: false,
+                offset: true,
+                ticks: {
+                    stepSize: 1
+                },
+                grid: {
+                    display: false
+                }
+            }
+        },
+        onClick(ev, context) {
+            // TODO: expanding accordion on click
+            console.log(context);
+        }
+    }
+};
+
+let heatmap = new Chart(document.getElementById('Heatmap'), heatmapConfig);
