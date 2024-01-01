@@ -65,8 +65,8 @@ socket.on("question_info", function (data) {
 
 });
 
-let subjectsCount = new Set(config.bar_data.map(l => l.subject)).size;
-let levelsCount = new Set(config.bar_data.map(l => l.level)).size;
+let subjects = new Set(config.bar_data.map(l => l.subject));
+let levels = new Set(config.bar_data.map(l => l.level));
 
 let heatmapData = {
     datasets: [{
@@ -74,18 +74,38 @@ let heatmapData = {
         backgroundColor(context) {
             const value = context.dataset.data[context.dataIndex].v;
             const hue = value / 100 * 120;
-            return `hsl(${hue}deg 50% 50%)`;
+            return `hsl(${hue}deg 70% 50%)`;
         },
         borderWidth: 1,
-        width: ({chart}) => (chart.chartArea || {}).width / subjectsCount - 1,
-        height: ({chart}) => (chart.chartArea || {}).height / levelsCount - 1
+        width: ({chart}) => (chart.chartArea || {}).width / subjects.size - 1,
+        height: ({chart}) => (chart.chartArea || {}).height / levels.size - 1
     }]
 };
 
-for (let u of config.bar_data) {
+const barsData = {
+    labels: Array.from(subjects),
+    datasets: []
+};
+
+for (const u of config.bar_data) {
     if (u.answered_count != 0) {
         heatmapData.datasets[0].data.push({x: u.subject, y: u.level, v: u.points / u.answered_count * 100});
     }
+}
+
+for (let level of levels) {
+    let data = []
+
+    for (let subject of subjects) {
+        let info = config.bar_data.find((value, index, array) => (value.level == level && value.subject == subject));
+        if (info === undefined) {
+            data.push(0);
+        } else {
+            data.push(info.points / info.answered_count * 100);
+        }
+    }
+
+    barsData.datasets.push({data: data, label: level});
 }
 
 const heatmapConfig = {
@@ -134,4 +154,17 @@ const heatmapConfig = {
     }
 };
 
+const barsConfig = {
+    type: 'bar',
+    data: barsData,
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    },
+};
+
 let heatmap = new Chart(document.getElementById('Heatmap'), heatmapConfig);
+let bars = new Chart(document.getElementById("QuestionChart"), barsConfig);
