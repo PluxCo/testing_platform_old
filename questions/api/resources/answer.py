@@ -1,15 +1,16 @@
 import datetime
+import logging
 
 from flask_restful import Resource, reqparse
-from sqlalchemy import select
+from sqlalchemy import select, desc, func
 
-from api.utils import abort_if_doesnt_exist
+from api.utils import abort_if_doesnt_exist, view_parser
 from models import db_session
 from models.db_session import create_session
 from models.questions import AnswerRecord, AnswerState
 
 # Request parser for filtering answer resources based on person_id and question_id
-fields_parser = reqparse.RequestParser()
+fields_parser = view_parser.copy()
 fields_parser.add_argument('person_id', type=str, required=False, location="args")
 fields_parser.add_argument('question_id', type=int, required=False, location="args")
 
@@ -54,12 +55,23 @@ class AnswerListResource(Resource):
             tuple: A tuple containing the list of AnswerRecord instances and HTTP status code.
         """
         # Parse the filtering parameters from the request
-        args = {k: v for k, v in fields_parser.parse_args().items() if v is not None}
+        args = fields_parser.parse_args()
+        filter_by = {k: v for k, v in fields_parser.parse_args().items()
+                     if v is not None and k in ("person_id", "question_id")}
         with create_session() as db:
             # Retrieve AnswerRecord instances from the database based on the filtering parameters
-            answers = [a.to_dict(rules=("-question",)) for a in db.scalars(select(AnswerRecord).filter_by(**args))]
+            db_req = (select(AnswerRecord, func.count(AnswerRecord.id).over())
+                      .filter_by(**filter_by)
+                      .order_by(args["orderBy"] if args["order"] == "asc" else desc(args["orderBy"]))
+                      .limit(args["resultsCount"])
+                      .offset(args["offset"]))
 
-        return answers, 200
+            answers = []
+            results_total = 0
+            for a, results_total in db.execute(db_req):
+                answers.append(a.to_dict(rules=("-question",)))
+
+        return {"results_total": results_total, "results_count": len(answers), "answers": answers}, 200
 
     def post(self):
         with db_session.create_session() as db:

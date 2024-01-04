@@ -1,6 +1,12 @@
-from flask_restful import abort
+from flask_restful import abort, reqparse
 
 from models.db_session import create_session
+
+view_parser = reqparse.RequestParser()
+view_parser.add_argument('order', type=str, required=False, choices=("asc", "desc"), default="asc", location="args")
+view_parser.add_argument('orderBy', type=str, required=False, default="id", location="args")
+view_parser.add_argument('resultsCount', type=int, required=False, default=-1, location="args")
+view_parser.add_argument('offset', type=int, required=False, default=0, location="args")
 
 
 def abort_if_doesnt_exist(field_name, model):
