@@ -10,8 +10,8 @@ from models.questions import AnswerRecord, AnswerState
 
 # Request parser for filtering answer resources based on person_id and question_id
 fields_parser = reqparse.RequestParser()
-fields_parser.add_argument('person_id', type=str, required=False)
-fields_parser.add_argument('question_id', type=int, required=False)
+fields_parser.add_argument('person_id', type=str, required=False, location="args")
+fields_parser.add_argument('question_id', type=int, required=False, location="args")
 
 planned_answer_parser = reqparse.RequestParser()
 planned_answer_parser.add_argument('person_id', type=str, required=True)
