@@ -99,14 +99,8 @@ def questions_ajax():
             options = "<ol>" + "".join(f"<li>{option}</li>" for option in q.options) + "</ol>"
         else:
             options = ""
-        groups = []
-        for g in q.groups:
-            try:
-                groups.append(GroupsDAO.get_group(g).label)
-            except:
-                logging.error(f"Unavailable group-id: {g}")
-        groups = ", ".join(groups)
-        res["data"].append((q.id, q.text, q.subject, options, q.answer, groups, q.level, q.article))
+
+        res["data"].append((q.id, q.text, q.subject, options, q.answer, ", ".join(q.groups), q.level, q.article))
 
     return jsonify(res)
 

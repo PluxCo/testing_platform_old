@@ -5,6 +5,8 @@ import os
 
 import requests
 
+from data_accessors.auth_accessor import GroupsDAO
+
 
 class QuestionType(enum.Enum):
     """
@@ -63,18 +65,22 @@ class QuestionsDAO:
 
     @staticmethod
     def _construct(resp):
-        try:
-            q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
-                         resp["answer"], [g["group_id"] for g in resp["groups"]],
-                         resp["level"], resp["article_url"],
-                         QuestionType(resp["type"]))
-        except KeyError as e:
-            return None
+        q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
+                     resp["answer"], resp["groups"],
+                     resp["level"], resp["article_url"],
+                     QuestionType(resp["type"]))
         return q
 
     @staticmethod
     def get_question(question_id: int) -> Question:
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host) + str(question_id)).json()
+
+        question_groups = []
+
+        for group in resp["groups"]:
+            question_groups.append(GroupsDAO.get_group(group["group_id"]).label)
+
+        resp["groups"] = question_groups
 
         return QuestionsDAO._construct(resp)
 
@@ -82,8 +88,22 @@ class QuestionsDAO:
     def get_questions(search_string="", column_to_order="", descending=False):
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host),
                             json={"search_string": search_string, "column_to_order": column_to_order,
-                                  "descending": descending}).json()
+                                  "descending": descending})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        resp = resp.json()
+
+        group_ids = {g["group_id"] for q in resp for g in q["groups"]}
+        group_names = {}
+
+        for g_id in group_ids:
+            group_names[g_id] = GroupsDAO.get_group(g_id).label
+
         for q in resp:
+            q["groups"] = [group_names[group["group_id"]] for group in q["groups"]]
+
             yield QuestionsDAO._construct(q)
 
     @staticmethod
