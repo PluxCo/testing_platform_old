@@ -292,16 +292,27 @@ class AnswerRecordDAO:
             raise Exception(resp.status_code, resp.text)
 
     @staticmethod
-    def get_records(question_id, person_id, order="desc", order_by="ask_time"):
+    def get_records(question_id, person_id, order="desc", order_by="ask_time", count=-1, offset=0):
         req = {"question_id": question_id,
                "person_id": person_id,
                "order": order,
-               "orderBy": order_by}
+               "orderBy": order_by,
+               "resultsCount": count,
+               "offset": offset}
+
+        if question_id is None:
+            del req["question_id"]
+        if person_id is None:
+            del req["person_id"]
 
         resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), params=req)
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
 
-        for item in resp.json()["answers"]:
-            yield AnswerRecordDAO._construct(item)
+        resp = resp.json()
+
+        answers = (AnswerRecordDAO._construct(item) for item in resp["answers"])
+        total = resp["results_total"]
+
+        return total, answers

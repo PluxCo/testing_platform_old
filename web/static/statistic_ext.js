@@ -1,5 +1,23 @@
 let socket = io();
 
+let currentPage = 0;
+let isLoading = false;
+
+function load_next_answers() {
+    isLoading = true;
+    document.getElementById("timeline").style.cursor = "wait";
+    socket.emit("get_answers_stat", {
+        person_id: document.querySelector("#person").dataset.person,
+        page: currentPage
+    });
+    currentPage++;
+}
+
+socket.on("connect", () => {
+    if (!isLoading)
+        load_next_answers();
+});
+
 window.onload = function () {
     new bootstrap.Modal("#question_modal");
     document.querySelectorAll(".question_stat").forEach(function (question_stat) {
@@ -22,6 +40,13 @@ window.onload = function () {
         let lastAlpha = question_stat.dataset.answeredCount > 0 ? 100 : 0;
         question_stat.style.backgroundColor = `hsl(${lastHue}deg 30% 90% / ${lastAlpha}%)`;
     });
+
+    let timeline = document.getElementById("timeline");
+    timeline.onscroll = () => {
+        if (timeline.offsetWidth - timeline.scrollLeft >= timeline.scrollWidth && !isLoading) {
+            load_next_answers();
+        }
+    };
 };
 
 socket.on("question_info", function (data) {
@@ -60,6 +85,26 @@ socket.on("question_info", function (data) {
         datable.classList.remove("placeholder", "col-5");
     });
 
+});
+
+socket.on("answers_stat", data => {
+    let row = document.getElementById("answers-timeline");
+
+    for (let answer of data.answers) {
+        let col = row.insertCell(-1);
+
+        switch (answer.state) {
+            case "TRANSFERRED":
+                col.style.backgroundColor = `var(--bs-info-bg-subtle)`;
+                break;
+            case "ANSWERED":
+                col.style.backgroundColor = `hsl(${answer.points * 120}deg 88% 90%)`;
+                break;
+        }
+    }
+
+    document.getElementById("timeline").style.cursor = "pointer";
+    isLoading = data.is_end;
 });
 
 let subjects = new Set(config.bar_data.map(l => l.subject));

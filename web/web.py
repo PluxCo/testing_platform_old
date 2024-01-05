@@ -356,10 +356,27 @@ def get_question_stat(data):
     #                                             data["person_id"] if "person_id" in data.keys() else "")
     question = QuestionsDAO.get_question(data["question_id"])
 
+    _, answers = AnswerRecordDAO.get_records(data["question_id"], data["person_id"])
     res = {
         "question": question.to_dict(),
         "answers": list(record.to_dict(("ask_time", "answer_time", "person_answer", "points", "state"))
-                        for record in AnswerRecordDAO.get_records(data["question_id"], data["person_id"]))
+                        for record in answers)
     }
 
     emit("question_info", res)
+
+
+@socketio.on("get_answers_stat")
+def get_answers_stat(data):
+    page_size = 30
+    total, answers = AnswerRecordDAO.get_records(None, data["person_id"],
+                                                 count=page_size, offset=data["page"] * page_size)
+
+    print(total)
+
+    res = {
+        "answers": [a.to_dict(("points", "state")) for a in answers],
+        "is_end": total <= data["page"] * page_size
+    }
+
+    emit("answers_stat", res)
