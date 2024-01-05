@@ -218,13 +218,6 @@ class StatisticsDAO:
         resp = requests.get(StatisticsDAO.__resource.format(StatisticsDAO.__host) + 'user/' + person_id)
         return resp.json()
 
-    @staticmethod
-    def get_question_statistics(question_id, person_id="") -> dict:
-        resp = requests.get(
-            StatisticsDAO.__resource.format(StatisticsDAO.__host) + f'question/',
-            json={"person_id": person_id, "question_id": question_id})
-        return resp.json()
-
 
 class AnswerRecord:
     def __init__(self, r_id: int,
