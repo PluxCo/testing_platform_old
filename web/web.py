@@ -375,7 +375,7 @@ def get_answers_stat(data):
     print(total)
 
     res = {
-        "answers": [a.to_dict(("points", "state")) for a in answers],
+        "answers": [a.to_dict(("points", "state", "question_id")) for a in answers],
         "is_end": total <= data["page"] * page_size
     }
 

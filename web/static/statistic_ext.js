@@ -13,6 +13,21 @@ function load_next_answers() {
     currentPage++;
 }
 
+function open_question(event) {
+    document.querySelector("#question_modal").querySelectorAll(".datable").forEach(function (datable) {
+        datable.innerHTML = "";
+        datable.classList.add("placeholder", "col-5");
+    });
+    bootstrap.Modal.getInstance("#question_modal").show();
+
+    document.querySelector("#planquestionform-question_id").value = event.currentTarget.dataset.question;
+
+    socket.emit("get_question_stat", {
+        person_id: document.querySelector("#person").dataset.person,
+        question_id: parseInt(event.currentTarget.dataset.question)
+    });
+}
+
 socket.on("connect", () => {
     if (!isLoading)
         load_next_answers();
@@ -21,20 +36,7 @@ socket.on("connect", () => {
 window.onload = function () {
     new bootstrap.Modal("#question_modal");
     document.querySelectorAll(".question_stat").forEach(function (question_stat) {
-        question_stat.addEventListener("click", function (event) {
-            document.querySelector("#question_modal").querySelectorAll(".datable").forEach(function (datable) {
-                datable.innerHTML = "";
-                datable.classList.add("placeholder", "col-5");
-            });
-            bootstrap.Modal.getInstance("#question_modal").show();
-
-            document.querySelector("#planquestionform-question_id").value = event.currentTarget.dataset.question;
-
-            socket.emit("get_question_stat", {
-                person_id: document.querySelector("#person").dataset.person,
-                question_id: parseInt(event.currentTarget.dataset.question)
-            });
-        });
+        question_stat.addEventListener("click", open_question);
 
         let lastHue = 120 * question_stat.dataset.lastPoints;
         let lastAlpha = question_stat.dataset.answeredCount > 0 ? 100 : 0;
@@ -92,6 +94,9 @@ socket.on("answers_stat", data => {
 
     for (let answer of data.answers) {
         let col = row.insertCell(-1);
+        col.classList.add("question_stat");
+        col.dataset.question = answer.question_id;
+        col.addEventListener("click", open_question);
 
         switch (answer.state) {
             case "TRANSFERRED":
