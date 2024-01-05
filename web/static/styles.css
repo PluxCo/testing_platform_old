@@ -34,13 +34,8 @@ body.modal-open {
 #timeline {
     direction: rtl;
     -ms-overflow-style: none;
-    scrollbar-width: none;
+    scrollbar-width: thin;
     overflow-y: scroll;
-    opacity: 0.8;
-}
-
-#timeline::-webkit-scrollbar {
-    display: none;
 }
 
 #timeline td {
