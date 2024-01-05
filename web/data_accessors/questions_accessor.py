@@ -54,6 +54,13 @@ class Question:
         self.article = article
         self.type = q_type
 
+    def to_dict(self, only: tuple[str] | None = None):
+        obj = self.__dict__.copy()
+        obj.update({"type": self.type.name})
+        if only is not None:
+            obj = {key: obj[key] for key in only}
+        return obj
+
 
 class QuestionsDAO:
     __resource = '{}/question/'
@@ -222,22 +229,29 @@ class StatisticsDAO:
 class AnswerRecord:
     def __init__(self, r_id: int,
                  question_id: int,
-                 question: Question,
                  person_id: str,
                  person_answer: str,
-                 answer_time: datetime.datetime or None,
+                 answer_time: datetime.datetime | None,
                  ask_time: datetime.datetime,
                  state: AnswerState,
                  points: float):
         self.r_id = r_id
         self.question_id = question_id
-        self.question = question
         self.person_id = person_id
         self.person_answer = person_answer
         self.answer_time = answer_time
         self.ask_time = ask_time
         self.state = state
         self.points = points
+
+    def to_dict(self, only: tuple[str] | None = None):
+        obj = self.__dict__.copy()
+        obj.update({"answer_time": self.answer_time.isoformat() if self.answer_time else None})
+        obj.update({"ask_time": self.ask_time.isoformat()})
+        obj.update({"state": self.state.name})
+        if only is not None:
+            obj = {key: obj[key] for key in only}
+        return obj
 
 
 class AnswerRecordDAO:
@@ -250,18 +264,20 @@ class AnswerRecordDAO:
 
     @staticmethod
     def _construct(resp):
-        q = AnswerRecord(resp['id'], resp['question_id'], QuestionsDAO.get_question(resp['question_id']),
-                         resp['person_id'], resp['person_answer'],
-                         None,
-                         datetime.datetime.fromisoformat(resp['ask_time']), AnswerState(resp['state']), resp['points'])
-        if resp['answer_time']:
-            q.answer_time = datetime.datetime.fromisoformat(resp['answer_time'])
+        q = AnswerRecord(resp['id'],
+                         resp['question_id'],
+                         resp['person_id'],
+                         resp['person_answer'],
+                         datetime.datetime.fromisoformat(resp['answer_time']) if resp['answer_time'] else None,
+                         datetime.datetime.fromisoformat(resp['ask_time']),
+                         AnswerState(resp['state']),
+                         resp['points'])
 
         return q
 
     @staticmethod
     def get_all_records():
-        for item in requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json={}).json():
+        for item in requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json={}).json()["answers"]:
             yield AnswerRecordDAO._construct(item)
 
     @staticmethod
@@ -274,3 +290,18 @@ class AnswerRecordDAO:
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
+
+    @staticmethod
+    def get_records(question_id, person_id, order="desc", order_by="ask_time"):
+        req = {"question_id": question_id,
+               "person_id": person_id,
+               "order": order,
+               "orderBy": order_by}
+
+        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), params=req)
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        for item in resp.json()["answers"]:
+            yield AnswerRecordDAO._construct(item)

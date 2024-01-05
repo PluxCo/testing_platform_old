@@ -352,6 +352,14 @@ def timeline():
 
 @socketio.on("get_question_stat")
 def get_question_stat(data):
-    res = StatisticsDAO.get_question_statistics(data["question_id"],
-                                                data["person_id"] if "person_id" in data.keys() else "")
+    # res = StatisticsDAO.get_question_statistics(data["question_id"],
+    #                                             data["person_id"] if "person_id" in data.keys() else "")
+    question = QuestionsDAO.get_question(data["question_id"])
+
+    res = {
+        "question": question.to_dict(),
+        "answers": list(record.to_dict(("ask_time", "answer_time", "person_answer", "points", "state"))
+                        for record in AnswerRecordDAO.get_records(data["question_id"], data["person_id"]))
+    }
+
     emit("question_info", res)

@@ -28,7 +28,7 @@ socket.on("question_info", function (data) {
     let modal = document.querySelector("#question_modal");
 
     modal.querySelector(".q_text").innerHTML = data.question.text;
-    modal.querySelector(".q_groups").innerHTML = data.question.groups.map((g) => g.name).join(", ");
+    modal.querySelector(".q_groups").innerHTML = data.question.groups.join(", ");
     modal.querySelector(".q_level").innerHTML = data.question.level;
     modal.querySelector(".q_correct").innerHTML = data.question.options ? data.question.options[data.question.answer - 1] : data.question.answer;
 
@@ -37,26 +37,23 @@ socket.on("question_info", function (data) {
     console.log(data)
     data.answers.forEach(function (answer) {
         let tr_style = "";
+
         switch (answer.state) {
-            case "CORRECT":
-                tr_style = "table-success";
+            case "TRANSFERRED":
+                tr_style = `background-color: var(--bs-info-bg-subtle);`;
                 break;
-            case "INCORRECT":
-                tr_style = "table-warning";
-                break;
-            case "IGNORED":
-                tr_style = "table-info";
-                break;
-            case "NOT_ANSWERED":
-                tr_style = "table-secondary";
+            case "ANSWERED":
+                let hue = answer.points * 120;
+                tr_style = `background-color: hsl(${hue}deg 88% 90%);`
                 break;
         }
-        answers_tbl.innerHTML += `<tr class="${tr_style}">
-                                    <td>${data.question.options ? data.question.options[answer.person_answer - 1] : answer.person_answer}</td>
-                                    <td>${answer.points}</td>
-                                    <td>${answer.ask_time}</td>
-                                    <td>${answer.answer_time}</td>
-                                  </tr>`;
+
+        answers_tbl.innerHTML += `<tr>
+                                <td style="${tr_style}">${data.question.options ? data.question.options[answer.person_answer - 1] : answer.person_answer}</td>
+                                <td style="${tr_style}">${answer.points}</td>
+                                <td style="${tr_style}">${answer.ask_time}</td>
+                                <td style="${tr_style}">${answer.answer_time}</td>
+                              </tr>`;
     });
 
     modal.querySelectorAll(".datable").forEach(function (datable) {
