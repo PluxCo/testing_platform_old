@@ -309,3 +309,31 @@ class AnswerRecordDAO:
         total = resp["results_total"]
 
         return total, answers
+
+    @staticmethod
+    def get_record(record_id: int):
+        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id))
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return AnswerRecordDAO._construct(resp.json())
+
+    @staticmethod
+    def delete_record(record_id: int):
+        resp = requests.delete(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id))
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return ''
+
+    @staticmethod
+    def grade_answer(record_id: int, points: float):
+        resp = requests.post(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id),
+                             json={'points': points})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return AnswerRecordDAO._construct(resp.json())

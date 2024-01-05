@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 import os
 from itertools import groupby
 
@@ -13,6 +12,7 @@ from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionTy
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
+from forms.answers import DeleteAnswerRecordForm, GradeAnswerRecordForm
 from utils import fusionauth_login_required
 
 app = Flask(__name__)
@@ -246,6 +246,60 @@ def settings_page():
                            title="Settings")
 
 
+@app.route('/answers', methods=["POST", "GET"])
+@fusionauth_login_required
+def answers_history():
+    grade_answer_form = GradeAnswerRecordForm()
+    delete_answer_form = DeleteAnswerRecordForm()
+
+    if grade_answer_form.save.data and grade_answer_form.validate():
+        answer_id = int(grade_answer_form.id.data)
+
+        AnswerRecordDAO.grade_answer(answer_id, float(grade_answer_form.points.data))
+
+        return redirect("/answers")
+
+    if delete_answer_form.delete.data:
+        AnswerRecordDAO.delete_record(int(delete_answer_form.id.data))
+
+        return redirect("/answers")
+
+    return render_template('answers history.html', grade_answer_form=grade_answer_form,
+                           delete_answer_form=delete_answer_form)
+
+
+@app.route("/answers_ajax")
+def answers_ajax():
+    args = request.args
+    res = {
+        "draw": args["draw"],
+        "recordsTotal": 0,
+        "recordsFiltered": 0,
+        "data": []
+    }
+
+    length = int(args["length"])
+    offset = int(args["start"])
+
+    orders = ["id", "ask_time", "id", "id", "person_answer", "points"]
+
+    cur_order = orders[int(args["order[0][column]"])]
+
+    res["recordsTotal"] = len([q for q in AnswerRecordDAO.get_all_records()])
+
+    total, answers = [q for q in AnswerRecordDAO.get_records(None, None,
+                                                             args["order[0][dir]"], cur_order,
+                                                             length, offset)]
+
+    res["recordsFiltered"] = total
+
+    for a in answers:
+        q = QuestionsDAO.get_question(a.question_id)
+        res["data"].append((a.r_id, a.ask_time, q.text, q.answer, a.person_answer, a.points))
+
+    return jsonify(res)
+
+
 @app.route("/")
 @fusionauth_login_required
 def main_page():
@@ -380,3 +434,16 @@ def get_answers_stat(data):
     }
 
     emit("answers_stat", res)
+
+
+@socketio.on("history_get_answer_info")
+def get_answer_info(data):
+    answer = AnswerRecordDAO.get_record(data['answer_id'])
+    question = QuestionsDAO.get_question(answer.question_id)
+
+    res = {
+        "answer": answer.to_dict(('r_id', 'person_answer', 'points', 'ask_time')),
+        "question": question.to_dict(('text', 'options', 'answer'))
+    }
+
+    emit("answer_info", res)

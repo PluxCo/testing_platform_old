@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block prescripts %}
+    <link href="https://cdn.datatables.net/v/bs5/dt-1.13.6/af-2.6.0/sl-1.7.0/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h1>Answers History</h1>
+        <div class="row mb-5 mt-5">
+            <div class="col mb-2">
+                <button id="delete_button" class="btn btn-outline-danger" data-bs-toggle="modal"
+                        data-bs-target="#deleteModal" disabled="">
+                    Delete
+                    <i class="bi bi-trash" style="font-size: 1rem; color: currentColor;"></i>
+                </button>
+                <button id="edit_button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                        data-bs-target="#editModal" disabled="">
+                    Grade
+                    <i class="bi bi-pencil-square" style="font-size: 1rem; color: currentColor;"></i>
+                </button>
+            </div>
+            <div class="modal fade" id="deleteModal" tabindex="-1"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5">Delete answer</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST">
+                                {{ delete_answer_form.csrf_token }}
+                                {{ delete_answer_form.id(id="answer-id-delete", class="form-control") }}
+                                <div class="mb-3">
+                                    Are you sure, you want to delete, the record of the answer from the database permanently?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
+                                    </button>
+                                    {{ delete_answer_form.delete(type="submit", class="btn btn-outline-danger", id="delete-btn") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="editModal" tabindex="-1"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5">Grading</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <h5>Question</h5>
+                            <p id="question_text" class="mb-3"></p>
+                            <h5>Question Options</h5>
+                            <p id="question_options" class="mb-3"></p>
+                            <h5>Correct Answer</h5>
+                            <p id="correct_answer" class="mb-3"></p>
+                            <h5>Person's answer</h5>
+                            <p id="person_answer" class="mb-3"></p>
+                            <hr>
+                            <form method="POST">
+                                {{ grade_answer_form.csrf_token }}
+                                {{ grade_answer_form.id(id="answer-id", class="form-control") }}
+                                <div class="mb-3">
+                                    {{ grade_answer_form.points.label(class_="form-label") }}
+                                    {{ grade_answer_form.points(id="answer-points", class_="form-control") }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    {{ grade_answer_form.save(type="submit", class="btn btn-primary", id="save-btn") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table id="table" class="table table-striped align-middle">
+                <thead class="align-middle">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Ask Time</th>
+                    <th scope="col">Question</th>
+                    <th scope="col">Correct Answer</th>
+                    <th scope="col">Person's answer</th>
+                    <th scope="col">Points</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block postscripts %}
+    <script src="https://cdn.datatables.net/v/bs5/dt-1.13.6/af-2.6.0/sl-1.7.0/datatables.min.js"></script>
+    <script src="/static/answers.js"></script>
+{% endblock %}

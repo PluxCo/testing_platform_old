@@ -19,6 +19,9 @@ planned_answer_parser.add_argument('person_id', type=str, required=True)
 planned_answer_parser.add_argument('question_id', type=int, required=True)
 planned_answer_parser.add_argument('ask_time', type=datetime.datetime.fromisoformat, required=True)
 
+grade_answer_parser = reqparse.RequestParser()
+grade_answer_parser.add_argument('points', type=float, required=True)
+
 
 class AnswerResource(Resource):
     """
@@ -39,6 +42,26 @@ class AnswerResource(Resource):
         with create_session() as db:
             # Retrieve the AnswerRecord from the database and convert it to a dictionary
             db_answer = db.get(AnswerRecord, answer_id).to_dict(rules=("-question",))
+        return db_answer, 200
+
+    @abort_if_doesnt_exist("answer_id", AnswerRecord)
+    def delete(self, answer_id):
+        with create_session() as db:
+            answer = db.get(AnswerRecord, answer_id)
+            db.delete(answer)
+            db.commit()
+        return '', 200
+
+    @abort_if_doesnt_exist("answer_id", AnswerRecord)
+    def post(self, answer_id):
+        args = grade_answer_parser.parse_args()
+
+        with create_session() as db:
+            db_answer = db.get(AnswerRecord, answer_id)
+            db_answer.points = args['points']
+            db.commit()
+
+            db_answer = db_answer.to_dict(rules=("-question",))
         return db_answer, 200
 
 
