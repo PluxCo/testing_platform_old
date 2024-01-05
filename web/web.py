@@ -132,7 +132,7 @@ def questions_page():
                                 groups=selected_groups,
                                 level=create_question_form.level.data,
                                 article=create_question_form.article.data,
-                                q_type=QuestionType.OPEN if create_question_form.is_open else QuestionType.TEST)
+                                q_type=QuestionType.OPEN if create_question_form.is_open.data else QuestionType.TEST)
 
         QuestionsDAO.create_question(new_question)
 

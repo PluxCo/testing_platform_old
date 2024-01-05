@@ -9,19 +9,20 @@ SqlAlchemyBase = dec.declarative_base()
 __factory = None
 
 
-def global_init(db_file):
+def global_init(db_file, drop_db=False):
     """
-    Initialize the global SQLAlchemy session factory and create database tables if they don't exist.
+    Initialize the global SQLAlchemy session factory and create or drop/create database tables.
 
     Args:
         db_file (str): The path to the SQLite database file.
+        drop_db (bool): Whether to drop and recreate the database tables.
 
     Raises:
         Exception: If the database file is not provided.
     """
     global __factory
 
-    if __factory:
+    if __factory and not drop_db:
         return
 
     if not db_file or not db_file.strip():
@@ -33,10 +34,15 @@ def global_init(db_file):
 
     # Create an SQLAlchemy engine and session factory
     engine = sa.create_engine(conn_str, echo=False)
-    __factory = orm.sessionmaker(bind=engine)
+
+    if drop_db:
+        # Drop all tables if specified
+        SqlAlchemyBase.metadata.drop_all(engine)
 
     # Create database tables if they don't exist
     SqlAlchemyBase.metadata.create_all(engine)
+
+    __factory = orm.sessionmaker(bind=engine)
 
 
 def create_session() -> Session:
