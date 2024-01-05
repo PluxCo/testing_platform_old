@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+from itertools import groupby
 
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 from flask_socketio import SocketIO, emit
@@ -98,14 +99,8 @@ def questions_ajax():
             options = "<ol>" + "".join(f"<li>{option}</li>" for option in q.options) + "</ol>"
         else:
             options = ""
-        groups = []
-        for g in q.groups:
-            try:
-                groups.append(GroupsDAO.get_group(g).label)
-            except:
-                logging.error(f"Unavailable group-id: {g}")
-        groups = ", ".join(groups)
-        res["data"].append((q.id, q.text, q.subject, options, q.answer, groups, q.level, q.article))
+
+        res["data"].append((q.id, q.text, q.subject, options, q.answer, ", ".join(q.groups), q.level, q.article))
 
     return jsonify(res)
 
@@ -282,34 +277,24 @@ def statistic_page(person_id):
 
     user_stats = StatisticsDAO.get_user_statistics(person_id)
 
-    subject_stat = user_stats['subject_statistics']
-    bar_data = user_stats['bar_data']
+    ls_stat = user_stats['ls']
+    questions_stat = user_stats["questions"]
+
+    questions_stat.sort(key=lambda x: x["question"]["subject"])
+    subjects = []
+    for subject, rows in groupby(questions_stat, lambda x: x["question"]["subject"]):
+        last_answers_stat = [s for s in ls_stat if s["subject"] == subject]
+        subjects.append({"name": subject,
+                         "points": sum(s["points"] for s in last_answers_stat),
+                         "answered_count": sum(s["answered_count"] for s in last_answers_stat),
+                         "questions_count": sum(s["questions_count"] for s in last_answers_stat),
+                         "questions": list(rows)})
 
     if plan_form.plan.data and plan_form.validate():
         AnswerRecordDAO.plan_question(plan_form.question_id.data, plan_form.person_id.data, plan_form.ask_time.data)
 
-    # for check_time in [datetime.datetime.now() + datetime.timedelta(x / 3) for x in range(-120, 1)]:
-    #     correct_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.answer_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
-    #                                                                    Question.answer == QuestionAnswer.person_answer))
-    #     incorrect_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.answer_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.ANSWERED,
-    #                                                                    Question.answer != QuestionAnswer.person_answer))
-    #     ignored_questions_amount = db.scalar(
-    #         select(func.count(QuestionAnswer.id)).join(Question).where(QuestionAnswer.person_id == person_id,
-    #                                                                    QuestionAnswer.ask_time <= check_time,
-    #                                                                    QuestionAnswer.state == AnswerState.TRANSFERRED,
-    #                                                                    QuestionAnswer.person_answer == None))
-    #
-    #     timeline.append((check_time.timestamp() * 1000, correct_questions_amount, incorrect_questions_amount,
-    #                      ignored_questions_amount))
-
-    return render_template("statistic.html", person=person, subjects=subject_stat,
-                           timeline=[], bar_data=json.dumps(bar_data, ensure_ascii=False),
+    return render_template("statistic.html", person=person, subjects=subjects,
+                           timeline=[], bar_data=ls_stat,
                            pause_form=pause_form, plan_form=plan_form, title="Statistics: " + person.full_name)
 
 
@@ -367,6 +352,31 @@ def timeline():
 
 @socketio.on("get_question_stat")
 def get_question_stat(data):
-    res = StatisticsDAO.get_question_statistics(data["question_id"],
-                                                data["person_id"] if "person_id" in data.keys() else "")
+    # res = StatisticsDAO.get_question_statistics(data["question_id"],
+    #                                             data["person_id"] if "person_id" in data.keys() else "")
+    question = QuestionsDAO.get_question(data["question_id"])
+
+    _, answers = AnswerRecordDAO.get_records(data["question_id"], data["person_id"])
+    res = {
+        "question": question.to_dict(),
+        "answers": list(record.to_dict(("ask_time", "answer_time", "person_answer", "points", "state"))
+                        for record in answers)
+    }
+
     emit("question_info", res)
+
+
+@socketio.on("get_answers_stat")
+def get_answers_stat(data):
+    page_size = 30
+    total, answers = AnswerRecordDAO.get_records(None, data["person_id"],
+                                                 count=page_size, offset=data["page"] * page_size)
+
+    print(total)
+
+    res = {
+        "answers": [a.to_dict(("points", "state", "question_id")) for a in answers],
+        "is_end": total <= data["page"] * page_size
+    }
+
+    emit("answers_stat", res)

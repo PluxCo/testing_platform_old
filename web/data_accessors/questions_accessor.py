@@ -5,6 +5,8 @@ import os
 
 import requests
 
+from data_accessors.auth_accessor import GroupsDAO
+
 
 class QuestionType(enum.Enum):
     """
@@ -52,6 +54,13 @@ class Question:
         self.article = article
         self.type = q_type
 
+    def to_dict(self, only: tuple[str] | None = None):
+        obj = self.__dict__.copy()
+        obj.update({"type": self.type.name})
+        if only is not None:
+            obj = {key: obj[key] for key in only}
+        return obj
+
 
 class QuestionsDAO:
     __resource = '{}/question/'
@@ -63,18 +72,22 @@ class QuestionsDAO:
 
     @staticmethod
     def _construct(resp):
-        try:
-            q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
-                         resp["answer"], [g["group_id"] for g in resp["groups"]],
-                         resp["level"], resp["article_url"],
-                         QuestionType(resp["type"]))
-        except KeyError as e:
-            return None
+        q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
+                     resp["answer"], resp["groups"],
+                     resp["level"], resp["article_url"],
+                     QuestionType(resp["type"]))
         return q
 
     @staticmethod
     def get_question(question_id: int) -> Question:
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host) + str(question_id)).json()
+
+        question_groups = []
+
+        for group in resp["groups"]:
+            question_groups.append(GroupsDAO.get_group(group["group_id"]).label)
+
+        resp["groups"] = question_groups
 
         return QuestionsDAO._construct(resp)
 
@@ -82,8 +95,22 @@ class QuestionsDAO:
     def get_questions(search_string="", column_to_order="", descending=False):
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host),
                             json={"search_string": search_string, "column_to_order": column_to_order,
-                                  "descending": descending}).json()
+                                  "descending": descending})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        resp = resp.json()
+
+        group_ids = {g["group_id"] for q in resp for g in q["groups"]}
+        group_names = {}
+
+        for g_id in group_ids:
+            group_names[g_id] = GroupsDAO.get_group(g_id).label
+
         for q in resp:
+            q["groups"] = [group_names[group["group_id"]] for group in q["groups"]]
+
             yield QuestionsDAO._construct(q)
 
     @staticmethod
@@ -191,33 +218,33 @@ class StatisticsDAO:
         resp = requests.get(StatisticsDAO.__resource.format(StatisticsDAO.__host) + 'user/' + person_id)
         return resp.json()
 
-    @staticmethod
-    def get_question_statistics(question_id, person_id="") -> dict:
-        resp = requests.get(
-            StatisticsDAO.__resource.format(StatisticsDAO.__host) + f'question/',
-            json={"person_id": person_id, "question_id": question_id})
-        return resp.json()
-
 
 class AnswerRecord:
     def __init__(self, r_id: int,
                  question_id: int,
-                 question: Question,
                  person_id: str,
                  person_answer: str,
-                 answer_time: datetime.datetime or None,
+                 answer_time: datetime.datetime | None,
                  ask_time: datetime.datetime,
                  state: AnswerState,
                  points: float):
         self.r_id = r_id
         self.question_id = question_id
-        self.question = question
         self.person_id = person_id
         self.person_answer = person_answer
         self.answer_time = answer_time
         self.ask_time = ask_time
         self.state = state
         self.points = points
+
+    def to_dict(self, only: tuple[str] | None = None):
+        obj = self.__dict__.copy()
+        obj.update({"answer_time": self.answer_time.isoformat() if self.answer_time else None})
+        obj.update({"ask_time": self.ask_time.isoformat()})
+        obj.update({"state": self.state.name})
+        if only is not None:
+            obj = {key: obj[key] for key in only}
+        return obj
 
 
 class AnswerRecordDAO:
@@ -230,18 +257,20 @@ class AnswerRecordDAO:
 
     @staticmethod
     def _construct(resp):
-        q = AnswerRecord(resp['id'], resp['question_id'], QuestionsDAO.get_question(resp['question_id']),
-                         resp['person_id'], resp['person_answer'],
-                         None,
-                         datetime.datetime.fromisoformat(resp['ask_time']), AnswerState(resp['state']), resp['points'])
-        if resp['answer_time']:
-            q.answer_time = datetime.datetime.fromisoformat(resp['answer_time'])
+        q = AnswerRecord(resp['id'],
+                         resp['question_id'],
+                         resp['person_id'],
+                         resp['person_answer'],
+                         datetime.datetime.fromisoformat(resp['answer_time']) if resp['answer_time'] else None,
+                         datetime.datetime.fromisoformat(resp['ask_time']),
+                         AnswerState(resp['state']),
+                         resp['points'])
 
         return q
 
     @staticmethod
     def get_all_records():
-        for item in requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json={}).json():
+        for item in requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), json={}).json()["answers"]:
             yield AnswerRecordDAO._construct(item)
 
     @staticmethod
@@ -254,3 +283,29 @@ class AnswerRecordDAO:
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
+
+    @staticmethod
+    def get_records(question_id, person_id, order="desc", order_by="ask_time", count=-1, offset=0):
+        req = {"question_id": question_id,
+               "person_id": person_id,
+               "order": order,
+               "orderBy": order_by,
+               "resultsCount": count,
+               "offset": offset}
+
+        if question_id is None:
+            del req["question_id"]
+        if person_id is None:
+            del req["person_id"]
+
+        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), params=req)
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        resp = resp.json()
+
+        answers = (AnswerRecordDAO._construct(item) for item in resp["answers"])
+        total = resp["results_total"]
+
+        return total, answers

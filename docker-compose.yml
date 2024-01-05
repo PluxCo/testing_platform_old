@@ -79,7 +79,7 @@ services:
     depends_on:
       - fusionauth
     environment:
-      FUSIONAUTH_HOST: http://fusionauth:9011
+      FUSIONAUTH_DOMAIN: http://fusionauth:9011
       FUSIONAUTH_TOKEN: ${WEB_FUSIONAUTH_TOKEN}
       FUSIONAUTH_CLIENT_ID: ${FUSIONAUTH_CLIENT_ID}
       FUSIONAUTH_CLIENT_SECRET: ${FUSIONAUTH_CLIENT_SECRET}

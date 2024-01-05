@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 
 {% block prescripts %}
-    <script src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
     <script>
         config = {
             timeline: {{ timeline | tojson | safe }},
-            bar_data: {{ bar_data | safe }}
+            bar_data: {{ bar_data | tojson }}
         }
     </script>
-    <script type="module" src="{{ url_for('static', filename='charts.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -125,33 +124,16 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm">
-                <div class="chart-container">
-                    <canvas id="Timeline"></canvas>
-                </div>
-            </div>
+            {#            <div class="col-sm">#}
+            {#                <div class="chart-container">#}
+            {#                    <canvas id="Timeline"></canvas>#}
+            {#                </div>#}
+            {#            </div>#}
         </div>
         <div class="row table-responsive rounded mb-3 ms-5" id="timeline">
             <table class="table m-0 table-bordered">
-                <tr class="d-flex">
-                    {% for answer in person.answers|reverse %}
-                        {% if answer.state == AnswerState.ANSWERED and answer.person_answer == answer.question.answer %}
-                            {% set a_bg = "table-success" %}
-                            {% set a_label = "Correct" %}
-                        {% elif answer.state == AnswerState.ANSWERED and answer.person_answer != answer.question.answer %}
-                            {% set a_bg = "table-warning" %}
-                            {% set a_label = "Incorrect" %}
-                        {% elif answer.state == AnswerState.TRANSFERRED %}
-                            {% set a_bg = "table-info" %}
-                            {% set a_label = "Skipped" %}
-                        {% elif answer.state == AnswerState.NOT_ANSWERED %}
-                            {% set a_bg = "table-secondary" %}
-                            {% set a_label = "Planned" %}
-                        {% endif %}
+                <tr class="d-flex" id="answers-timeline">
 
-                        <td class="text-center {{ a_bg }} question_stat" data-question="{{ answer.question.id }}">
-                        </td>
-                    {% endfor %}
                 </tr>
             </table>
         </div>
@@ -167,7 +149,7 @@
                                     aria-controls="subj_{{ loop.index }}">
                                 <span>{{ s['name'] }}</span>
                                 <span class="float-end mx-5 fs-5">
-                                    <span class="text-success">{{ s['correct_count'] }}</span> /
+                                    <span class="text-success">{{ s['points'] }}</span> /
                                     <span class="text-info">{{ s['answered_count'] }}</span> /
                                     <span class="text-secondary">{{ s['questions_count'] }}</span>
                                 </span>
@@ -179,27 +161,19 @@
                                 <table class="table align-middle">
                                     <caption>Last answers</caption>
                                     <tr>
-                                        {% for answer in s['person_answers'] %}
-                                            <td class="text-center col-1">{{ answer['current_question'].text }}</td>
+                                        {% for q in s['questions'] %}
+                                            <td class="text-center col-1">{{ q["question"]["text"] }}</td>
                                         {% endfor %}
                                     </tr>
                                     <tr>
-                                        {% for answer in s['person_answers'] %}
-                                            {% set td_status = "" %}
-                                            {% if answer['answer_state'] == "CORRECT" %}
-                                                {% set td_status = "table-success" %}
-                                            {% elif answer['answer_state'] == "INCORRECT" %}
-                                                {% set td_status = "table-warning" %}
-                                            {% elif answer['answer_state'] == "IGNORED" %}
-                                                {% set td_status = "table-info" %}
-                                            {% elif answer['answer_state'] == "NOT_ANSWERED" %}
-                                                {% set td_status = "table-secondary" %}
-                                            {% endif %}
-
-                                            <td class="text-center {{ td_status }} question_stat"
-                                                data-question="{{ answer['current_question']['id'] }}">
-                                                <span class="text-success">{{ answer['question_correct_count'] }}</span> /
-                                                <span class="text-danger">{{ answer['question_incorrect_count'] }}</span>
+                                        {% for q in s["questions"] %}
+                                            <td class="text-center question_stat"
+                                                data-question="{{ q['question']['id'] }}"
+                                                data-answered-count="{{ q["answered_count"] }}"
+                                                data-last-points="{{ q["last_points"] }}">
+                                                <span class="text-success">{{ q['total_points'] }}</span>
+                                                /
+                                                <span class="text-danger">{{ q["answered_count"] - q['total_points'] }}</span>
                                             </td>
                                         {% endfor %}
                                     </tr>
