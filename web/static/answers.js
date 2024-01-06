@@ -1,14 +1,35 @@
 const table = new DataTable('#table', {
-    ajax: '/answers_ajax',
+    ajax: {
+        url: '/answers_ajax',
+        data: function (d) {
+            d.onlyOpen = document.getElementById("openCheck").checked;
+            d.onlyUnverified = document.getElementById("unverifiedCheck").checked;
+        }
+    },
     processing: true,
     serverSide: true,
-    columns: [{}, {}, {orderable: false}, {orderable: false}, {width: "30%"}, {}],
-    order: [[1, 'desc']]
+    columns: [{}, {}, {orderable: false}, {orderable: false}, {width: "30%"}, {}
+        // {
+        //     render: function () {
+        //         return `<button>edit</button>`;
+        //     }
+        // },
+        // {
+        //     render: function (data) {
+        //         return `<button>remove</button>`;
+        //     }
+        // }
+    ],
+    order: [[1, 'desc']],
 });
 
+window.onload = function () {
+    for (let el of document.querySelectorAll(".update-table")) {
+        el.onchange = () => table.ajax.reload();
+    }
+}
+
 socket = io();
-
-
 table.on('click', 'tbody tr', (e) => {
     let classList = e.currentTarget.classList;
 

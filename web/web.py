@@ -8,7 +8,7 @@ from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
 from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType, SettingsDAO as QuestionSettingsDAO, \
-    Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO
+    Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO, AnswerState
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
@@ -281,21 +281,28 @@ def answers_ajax():
     length = int(args["length"])
     offset = int(args["start"])
 
-    orders = ["id", "ask_time", "id", "id", "person_answer", "points"]
-
+    orders = ["id", "ask_time", "", "", "person_answer", "points"]
     cur_order = orders[int(args["order[0][column]"])]
 
-    res["recordsTotal"] = len([q for q in AnswerRecordDAO.get_all_records()])
+    state = AnswerState.PENDING if args["onlyUnverified"] == "true" else None
 
-    total, answers = [q for q in AnswerRecordDAO.get_records(None, None,
-                                                             args["order[0][dir]"], cur_order,
-                                                             length, offset)]
+    total, answers = AnswerRecordDAO.get_records(None, None,
+                                                 args["order[0][dir]"], cur_order,
+                                                 length, offset,
+                                                 only_open=(args["onlyOpen"] == "true"),
+                                                 state=state)
 
+    answers = list(answers)
+    res["recordsTotal"] = total
     res["recordsFiltered"] = total
 
+    question_ids = {a.question_id for a in answers}
+    questions = {q_id: QuestionsDAO.get_question(q_id) for q_id in question_ids}
+
     for a in answers:
-        q = QuestionsDAO.get_question(a.question_id)
-        res["data"].append((a.r_id, a.ask_time, q.text, q.answer, a.person_answer, a.points))
+        a.question = questions[a.question_id]
+
+        res["data"].append((a.r_id, a.ask_time, a.question.text, a.question.answer, a.person_answer, a.points))
 
     return jsonify(res)
 
