@@ -21,6 +21,7 @@ class AnswerState(enum.Enum):
     """
     NOT_ANSWERED = 0
     TRANSFERRED = 1
+    PENDING = 3
     ANSWERED = 2
 
 

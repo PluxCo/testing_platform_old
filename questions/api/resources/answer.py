@@ -2,25 +2,25 @@ import datetime
 import logging
 
 from flask_restful import Resource, reqparse
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, update
 
 from api.utils import abort_if_doesnt_exist, view_parser
 from models import db_session
 from models.db_session import create_session
-from models.questions import AnswerRecord, AnswerState
+from models.questions import AnswerRecord, AnswerState, QuestionType
 
 # Request parser for filtering answer resources based on person_id and question_id
 fields_parser = view_parser.copy()
-fields_parser.add_argument('person_id', type=str, required=False, location="args")
-fields_parser.add_argument('question_id', type=int, required=False, location="args")
+fields_parser.add_argument('answer', type=dict, required=False, default={})
 
 planned_answer_parser = reqparse.RequestParser()
 planned_answer_parser.add_argument('person_id', type=str, required=True)
 planned_answer_parser.add_argument('question_id', type=int, required=True)
 planned_answer_parser.add_argument('ask_time', type=datetime.datetime.fromisoformat, required=True)
 
-grade_answer_parser = reqparse.RequestParser()
-grade_answer_parser.add_argument('points', type=float, required=True)
+update_answer_parser = reqparse.RequestParser()
+update_answer_parser.add_argument('points', type=float, required=False)
+update_answer_parser.add_argument('state', type=AnswerState, required=False)
 
 
 class AnswerResource(Resource):
@@ -53,15 +53,15 @@ class AnswerResource(Resource):
         return '', 200
 
     @abort_if_doesnt_exist("answer_id", AnswerRecord)
-    def post(self, answer_id):
-        args = grade_answer_parser.parse_args()
+    def patch(self, answer_id):
+        args = {k: v for k, v in update_answer_parser.parse_args().items() if v is not None}
 
         with create_session() as db:
-            db_answer = db.get(AnswerRecord, answer_id)
-            db_answer.points = args['points']
+            db.execute(update(AnswerRecord).where(AnswerRecord.id == answer_id)
+                       .values(**args))
             db.commit()
 
-            db_answer = db_answer.to_dict(rules=("-question",))
+            db_answer = db.get(AnswerRecord, answer_id).to_dict(rules=("-question",))
         return db_answer, 200
 
 
@@ -79,13 +79,25 @@ class AnswerListResource(Resource):
         """
         # Parse the filtering parameters from the request
         args = fields_parser.parse_args()
-        filter_by = {k: v for k, v in fields_parser.parse_args().items()
-                     if v is not None and k in ("person_id", "question_id")}
+
+        # TODO: add adequate parsers
+        answer_filters = args["answer"]
+        if "state" in answer_filters:
+            answer_filters["state"] = AnswerState(answer_filters["state"])
+
+        question_filters = answer_filters.pop("question", {})
+        if "type" in question_filters:
+            question_filters["type"] = QuestionType(question_filters["type"])
+
         with create_session() as db:
             # Retrieve AnswerRecord instances from the database based on the filtering parameters
             db_req = (select(AnswerRecord, func.count(AnswerRecord.id).over())
-                      .filter_by(**filter_by)
-                      .order_by(args["orderBy"] if args["order"] == "asc" else desc(args["orderBy"]))
+                      .filter_by(**answer_filters))
+
+            if question_filters:
+                db_req = db_req.join(AnswerRecord.question).filter_by(**question_filters)
+
+            db_req = (db_req.order_by(args["orderBy"] if args["order"] == "asc" else desc(args["orderBy"]))
                       .limit(args["resultsCount"])
                       .offset(args["offset"]))
 
