@@ -302,7 +302,8 @@ def answers_ajax():
     for a in answers:
         a.question = questions[a.question_id]
 
-        res["data"].append((a.r_id, a.ask_time, a.question.text, a.question.answer, a.person_answer, a.points))
+        res["data"].append(
+            (a.r_id, a.ask_time.isoformat(), a.question.text, a.question.answer, a.person_answer, a.points))
 
     return jsonify(res)
 
@@ -443,14 +444,8 @@ def get_answers_stat(data):
     emit("answers_stat", res)
 
 
-@socketio.on("history_get_answer_info")
-def get_answer_info(data):
-    answer = AnswerRecordDAO.get_record(data['answer_id'])
-    question = QuestionsDAO.get_question(answer.question_id)
+@socketio.on("set_points")
+def set_points(data):
+    AnswerRecordDAO.grade_answer(data["answer_id"], data["points"])
 
-    res = {
-        "answer": answer.to_dict(('r_id', 'person_answer', 'points', 'ask_time')),
-        "question": question.to_dict(('text', 'options', 'answer'))
-    }
-
-    emit("answer_info", res)
+    emit("saved_success")

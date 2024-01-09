@@ -8,17 +8,29 @@ const table = new DataTable('#table', {
     },
     processing: true,
     serverSide: true,
-    columns: [{}, {}, {orderable: false}, {orderable: false}, {width: "30%"}, {}
-        // {
-        //     render: function () {
-        //         return `<button>edit</button>`;
-        //     }
-        // },
-        // {
-        //     render: function (data) {
-        //         return `<button>remove</button>`;
-        //     }
-        // }
+    searching: false,
+    columns: [{}, {
+        render: DataTable.render.datetime('dd.MM.yyyy HH:mm')
+    }, {orderable: false}, {orderable: false}, {},
+        {
+            render: function (data) {
+                return `<input type="number" min="0" max="1" step="0.01" onchange="markAsChanged(this)"
+                        class="form-control accept-points" value="${data}" data-value="${data}" />`;
+            }
+        },
+        {
+            orderable: false,
+            render: function (data, d, row) {
+                return `<div class="col"><button class="btn btn-outline-danger"
+                        onclick="removeAnswer(this);" data-answer-id="${row[0]}">
+                    <i class="bi bi-trash" style="font-size: 1rem; color: currentColor;"></i>
+                </button>
+                <button class="btn btn-outline-success"
+                        onclick="saveAnswer(this);" data-answer-id="${row[0]}">
+                    <i class="bi bi-pencil-square" style="font-size: 1rem; color: currentColor;"></i>
+                </button></div>`;
+            }
+        }
     ],
     order: [[1, 'desc']],
 });
@@ -30,49 +42,35 @@ window.onload = function () {
 }
 
 socket = io();
-table.on('click', 'tbody tr', (e) => {
-    let classList = e.currentTarget.classList;
 
-    if (classList.contains('selected')) {
-        classList.remove('selected');
-        document.getElementById('edit_button').disabled = true;
-        document.getElementById('delete_button').disabled = true;
-    } else {
-        table.rows('.selected').nodes().each((row) => row.classList.remove('selected'));
-        classList.add('selected');
-        document.getElementById('edit_button').disabled = false;
-        document.getElementById('delete_button').disabled = false;
+socket.on("saved_success", () => {
+    let toast = new bootstrap.Toast(".toast", {delay: 3000});
+    toast.show();
+
+});
+
+function removeAnswer(sender) {
+    document.getElementById('answer-id-delete').value = sender.dataset.answerId;
+    new bootstrap.Modal('#deleteModal', {}).show();
+}
+
+function saveAnswer(sender) {
+    const points = sender.closest("tr").querySelector(".accept-points");
+    if (!points.checkValidity()) {
+        points.reportValidity();
+        return;
     }
 
-});
+    socket.emit("set_points", {answer_id: sender.dataset.answerId, points: points.value});
 
+    points.dataset.value = points.value;
+    markAsChanged(points);
+}
 
-document.querySelector("#edit_button").addEventListener("click", function () {
-    let selected_id = table.rows(".selected")[0][0];
-    socket.emit("history_get_answer_info", {answer_id: table.data()[selected_id][0]});
-});
-
-document.querySelector("#delete_button").addEventListener("click", function () {
-    let selected_id = table.rows(".selected")[0][0];
-    socket.emit("history_get_answer_info", {answer_id: table.data()[selected_id][0]});
-});
-
-socket.on("answer_info", function (data) {
-    document.getElementById('answer-id').value = data.answer.r_id;
-    document.getElementById('answer-points').value = data.answer.points;
-    document.getElementById('person_answer').innerHTML = data.answer.person_answer;
-    document.getElementById('question_text').innerHTML = data.question.text;
-    document.getElementById('question_options').innerHTML = '<ol>' + data.question.options.map(option => `<li>${option}</li>`).join('') + '</ol>';
-    document.getElementById('correct_answer').innerHTML = data.question.answer;
-
-    document.getElementById('answer-id-delete').value = data.answer.r_id;
-});
-
-
-document.querySelector('#delete-btn').addEventListener('click', function () {
-    table.row('.selected').remove().draw(false);
-    const id = table.rows('.selected').nodes()[0].cells[0].innerText;
-
-    document.getElementById('edit_button').setAttribute('disabled', '');
-    document.getElementById('delete_button').setAttribute('disabled', '');
-});
+function markAsChanged(sender) {
+    if (sender.value != sender.dataset.value) {
+        sender.style.borderColor = 'var(--bs-warning-border-subtle)';
+    } else {
+        sender.style.borderColor = '';
+    }
+}
