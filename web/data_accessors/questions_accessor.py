@@ -351,7 +351,7 @@ class AnswerRecordDAO:
     @staticmethod
     def grade_answer(record_id: int, points: float):
         resp = requests.patch(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id),
-                              json={'points': points})
+                              json={'points': points, 'state': AnswerState.ANSWERED.value})
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
