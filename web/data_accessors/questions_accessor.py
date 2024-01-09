@@ -27,10 +27,12 @@ class AnswerState(enum.Enum):
     Attributes:
         NOT_ANSWERED (int): The answer has not been provided.
         TRANSFERRED (int): The answer has been transferred to an external system.
-        ANSWERED (int): The answer has been provided.
+        PENDING (int): The answer has been provided.
+        ANSWERED (int): The answer has been provided and verified.
     """
     NOT_ANSWERED = 0
     TRANSFERRED = 1
+    PENDING = 3
     ANSWERED = 2
 
 
@@ -237,6 +239,8 @@ class AnswerRecord:
         self.state = state
         self.points = points
 
+        self.question = None
+
     def to_dict(self, only: tuple[str] | None = None):
         obj = self.__dict__.copy()
         obj.update({"answer_time": self.answer_time.isoformat() if self.answer_time else None})
@@ -285,20 +289,36 @@ class AnswerRecordDAO:
             raise Exception(resp.status_code, resp.text)
 
     @staticmethod
-    def get_records(question_id, person_id, order="desc", order_by="ask_time", count=-1, offset=0):
-        req = {"question_id": question_id,
-               "person_id": person_id,
-               "order": order,
-               "orderBy": order_by,
-               "resultsCount": count,
-               "offset": offset}
+    def get_records(question_id=None, person_id=None, order="desc", order_by="ask_time", count=-1, offset=0,
+                    only_open=False, state: AnswerState = None):
+        req = {
+            "answer": {
+                "question_id": question_id,
+                "person_id": person_id
+            },
+            "order": order,
+            "orderBy": order_by,
+            "resultsCount": count,
+            "offset": offset
+        }
+
+        params = {"order": order,
+                  "orderBy": order_by,
+                  "resultsCount": count,
+                  "offset": offset}
+
+        if only_open:
+            req["answer"]["question"] = {"type": QuestionType.OPEN.value}
+
+        if state is not None:
+            req["answer"]["state"] = state.value
 
         if question_id is None:
-            del req["question_id"]
+            del req["answer"]["question_id"]
         if person_id is None:
-            del req["person_id"]
+            del req["answer"]["person_id"]
 
-        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), params=req)
+        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host), params=params, json=req)
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
@@ -309,3 +329,31 @@ class AnswerRecordDAO:
         total = resp["results_total"]
 
         return total, answers
+
+    @staticmethod
+    def get_record(record_id: int):
+        resp = requests.get(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id))
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return AnswerRecordDAO._construct(resp.json())
+
+    @staticmethod
+    def delete_record(record_id: int):
+        resp = requests.delete(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id))
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return ''
+
+    @staticmethod
+    def grade_answer(record_id: int, points: float):
+        resp = requests.patch(AnswerRecordDAO.__resource.format(AnswerRecordDAO.__host) + str(record_id),
+                              json={'points': points, 'state': AnswerState.ANSWERED.value})
+
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return AnswerRecordDAO._construct(resp.json())

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block prescripts %}
+    <link href="https://cdn.datatables.net/v/bs5/dt-1.13.6/af-2.6.0/sl-1.7.0/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast text-bg-primary" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-floppy-fill me-2"></i>
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+            </div>
+            <div class="toast-body">
+                Changes were saved successfully! :)
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container">
+        <h1>Answers History</h1>
+        <div class="row mb-5 mt-5">
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-check form-switch form-check-inline">
+                        <input class="form-check-input update-table" type="checkbox" value="" id="unverifiedCheck">
+                        <label class="form-check-label" for="unverifiedCheck">
+                            Only unverified
+                        </label>
+                    </div>
+                    <div class="form-check form-switch form-check-inline">
+                        <input class="form-check-input update-table" type="checkbox" value="" id="openCheck" checked>
+                        <label class="form-check-label" for="openCheck">
+                            Only open questions
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="deleteModal" tabindex="-1"
+                 aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h1 class="modal-title fs-5">Delete answer</h1>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form method="POST">
+                                {{ delete_answer_form.csrf_token }}
+                                {{ delete_answer_form.id(id="answer-id-delete", class="form-control") }}
+                                <div class="mb-3">
+                                    Are you sure, you want to delete, the record of the answer from the database
+                                    permanently?
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel
+                                    </button>
+                                    {{ delete_answer_form.delete(type="submit", class="btn btn-outline-danger", id="delete-btn") }}
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table id="table" class="table table-striped align-middle">
+                <thead class="align-middle">
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Ask Time</th>
+                    <th scope="col">Question</th>
+                    <th scope="col">Correct Answer</th>
+                    <th scope="col">Person's answer</th>
+                    <th scope="col">Points</th>
+                    <th scope="col"></th>
+                </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+{% endblock %}
+
+{% block postscripts %}
+    <script src="https://cdn.datatables.net/v/bs5/dt-1.13.6/af-2.6.0/sl-1.7.0/datatables.min.js"></script>
+    <script src="/static/answers.js"></script>
+{% endblock %}

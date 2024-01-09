@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 import os
 from itertools import groupby
 
@@ -9,10 +8,11 @@ from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
 from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType, SettingsDAO as QuestionSettingsDAO, \
-    Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO
+    Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO, AnswerState
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
+from forms.answers import DeleteAnswerRecordForm, GradeAnswerRecordForm
 from utils import fusionauth_login_required
 
 app = Flask(__name__)
@@ -246,6 +246,68 @@ def settings_page():
                            title="Settings")
 
 
+@app.route('/answers', methods=["POST", "GET"])
+@fusionauth_login_required
+def answers_history():
+    grade_answer_form = GradeAnswerRecordForm()
+    delete_answer_form = DeleteAnswerRecordForm()
+
+    if grade_answer_form.save.data and grade_answer_form.validate():
+        answer_id = int(grade_answer_form.id.data)
+
+        AnswerRecordDAO.grade_answer(answer_id, float(grade_answer_form.points.data))
+
+        return redirect("/answers")
+
+    if delete_answer_form.delete.data:
+        AnswerRecordDAO.delete_record(int(delete_answer_form.id.data))
+
+        return redirect("/answers")
+
+    return render_template('answers history.html', grade_answer_form=grade_answer_form,
+                           delete_answer_form=delete_answer_form)
+
+
+@app.route("/answers_ajax")
+def answers_ajax():
+    args = request.args
+    res = {
+        "draw": args["draw"],
+        "recordsTotal": 0,
+        "recordsFiltered": 0,
+        "data": []
+    }
+
+    length = int(args["length"])
+    offset = int(args["start"])
+
+    orders = ["id", "ask_time", "", "", "person_answer", "points"]
+    cur_order = orders[int(args["order[0][column]"])]
+
+    state = AnswerState.PENDING if args["onlyUnverified"] == "true" else None
+
+    total, answers = AnswerRecordDAO.get_records(None, None,
+                                                 args["order[0][dir]"], cur_order,
+                                                 length, offset,
+                                                 only_open=(args["onlyOpen"] == "true"),
+                                                 state=state)
+
+    answers = list(answers)
+    res["recordsTotal"] = total
+    res["recordsFiltered"] = total
+
+    question_ids = {a.question_id for a in answers}
+    questions = {q_id: QuestionsDAO.get_question(q_id) for q_id in question_ids}
+
+    for a in answers:
+        a.question = questions[a.question_id]
+
+        res["data"].append(
+            (a.r_id, a.ask_time.isoformat(), a.question.text, a.question.answer, a.person_answer, a.points))
+
+    return jsonify(res)
+
+
 @app.route("/")
 @fusionauth_login_required
 def main_page():
@@ -380,3 +442,10 @@ def get_answers_stat(data):
     }
 
     emit("answers_stat", res)
+
+
+@socketio.on("set_points")
+def set_points(data):
+    AnswerRecordDAO.grade_answer(data["answer_id"], data["points"])
+
+    emit("saved_success")

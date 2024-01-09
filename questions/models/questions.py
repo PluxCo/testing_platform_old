@@ -21,6 +21,7 @@ class AnswerState(enum.Enum):
     """
     NOT_ANSWERED = 0
     TRANSFERRED = 1
+    PENDING = 3
     ANSWERED = 2
 
 
@@ -126,3 +127,4 @@ class AnswerRecord(SqlAlchemyBase, SerializerMixin):
                 # TODO: add adequate calculation of points
 
                 self.points = 0
+                self.state = AnswerState.PENDING
