@@ -127,3 +127,4 @@ class AnswerRecord(SqlAlchemyBase, SerializerMixin):
                 # TODO: add adequate calculation of points
 
                 self.points = 0
+                self.state = AnswerState.PENDING
