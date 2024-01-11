@@ -114,7 +114,7 @@ class QuestionsDAO:
             "subject": question.subject,
             "options": question.options,
             "answer": question.answer,
-            "groups": question.groups,
+            "groups": question.group_ids,
             "level": question.level,
             "article_url": question.article,
             "type": question.type.value
@@ -131,7 +131,7 @@ class QuestionsDAO:
             "subject": question.subject,
             "options": question.options,
             "answer": question.answer,
-            "groups": question.groups,
+            "groups": question.group_ids,
             "level": question.level,
             "article_url": question.article,
             "type": question.type.value

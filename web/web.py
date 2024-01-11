@@ -13,7 +13,7 @@ from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionTy
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
-from forms.answers import DeleteAnswerRecordForm, GradeAnswerRecordForm
+from forms.answers import DeleteAnswerRecordForm
 from utils import fusionauth_login_required
 
 app = Flask(__name__)
@@ -130,7 +130,7 @@ def questions_page():
                                 subject=create_question_form.subject.data,
                                 options=options,
                                 answer=create_question_form.answer.data,
-                                groups=selected_groups,
+                                group_ids=selected_groups,
                                 level=create_question_form.level.data,
                                 article=create_question_form.article.data,
                                 q_type=QuestionType.OPEN if create_question_form.is_open.data else QuestionType.TEST)
@@ -162,7 +162,7 @@ def questions_page():
                                               text=record["question"],
                                               subject=import_question_form.subject.data,
                                               options=record["options"],
-                                              groups=selected_groups,
+                                              group_ids=selected_groups,
                                               answer=answer,
                                               level=record["difficulty"],
                                               article=import_question_form.article.data,
@@ -250,22 +250,14 @@ def settings_page():
 @app.route('/answers', methods=["POST", "GET"])
 @fusionauth_login_required
 def answers_history():
-    grade_answer_form = GradeAnswerRecordForm()
     delete_answer_form = DeleteAnswerRecordForm()
-
-    if grade_answer_form.save.data and grade_answer_form.validate():
-        answer_id = int(grade_answer_form.id.data)
-
-        AnswerRecordDAO.grade_answer(answer_id, float(grade_answer_form.points.data))
-
-        return redirect("/answers")
 
     if delete_answer_form.delete.data:
         AnswerRecordDAO.delete_record(int(delete_answer_form.id.data))
 
         return redirect("/answers")
 
-    return render_template('answers history.html', grade_answer_form=grade_answer_form,
+    return render_template('answers history.html',
                            delete_answer_form=delete_answer_form)
 
 
@@ -418,7 +410,7 @@ def get_question_stat(data):
     question = QuestionsDAO.get_question(data["question_id"])
     BridgeService.load_groups_into_questions([question])
 
-    _, answers = AnswerRecordDAO.get_records(data["question_id"], data["person_id"])
+    _, answers = AnswerRecordDAO.get_records(data["question_id"], data.get("person_id"))
     res = {
         "question": question.to_dict(),
         "answers": list(record.to_dict(("ask_time", "answer_time", "person_answer", "points", "state"))
@@ -433,8 +425,6 @@ def get_answers_stat(data):
     page_size = 30
     total, answers = AnswerRecordDAO.get_records(None, data["person_id"],
                                                  count=page_size, offset=data["page"] * page_size)
-
-    print(total)
 
     res = {
         "answers": [a.to_dict(("points", "state", "question_id")) for a in answers],

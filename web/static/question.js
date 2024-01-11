@@ -32,10 +32,13 @@ document.querySelector("#edit_button").addEventListener("click", function () {
 
 document.querySelector("#delete_button").addEventListener("click", function () {
     let selected_id = table.rows(".selected")[0][0];
+    console.log(selected_id);
     socket.emit("get_question_stat", {question_id: table.data()[selected_id][0]});
 });
 
 socket.on("question_info", function (data) {
+    
+    console.log(data);
     document.getElementById('question-id').value = data.question.id;
     document.getElementById('question-text').value = data.question.text;
     document.getElementById('question-subject').value = data.question.subject;
@@ -47,6 +50,8 @@ socket.on("question_info", function (data) {
     $("#question-groups").selectpicker("val", data.question.groups.map((group) => String(group.id)));
 
     document.getElementById('question-id-delete').value = data.question.id;
+
+
 });
 
 
