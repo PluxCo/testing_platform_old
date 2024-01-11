@@ -5,8 +5,6 @@ import os
 
 import requests
 
-from data_accessors.auth_accessor import GroupsDAO
-
 
 class QuestionType(enum.Enum):
     """
@@ -42,7 +40,7 @@ class Question:
                  subject: str,
                  options: list[str],
                  answer: int,
-                 groups: list[str],
+                 group_ids: list[str],
                  level: int,
                  article: str,
                  q_type: QuestionType):
@@ -51,10 +49,12 @@ class Question:
         self.subject = subject
         self.options = options
         self.answer = answer
-        self.groups = groups
+        self.group_ids = group_ids
         self.level = level
         self.article = article
         self.type = q_type
+
+        self.groups = None
 
     def to_dict(self, only: tuple[str] | None = None):
         obj = self.__dict__.copy()
@@ -75,7 +75,7 @@ class QuestionsDAO:
     @staticmethod
     def _construct(resp):
         q = Question(resp["id"], resp["text"], resp["subject"], resp["options"],
-                     resp["answer"], resp["groups"],
+                     resp["answer"], [g["group_id"] for g in resp["groups"]],
                      resp["level"], resp["article_url"],
                      QuestionType(resp["type"]))
         return q
@@ -84,36 +84,28 @@ class QuestionsDAO:
     def get_question(question_id: int) -> Question:
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host) + str(question_id)).json()
 
-        question_groups = []
-
-        for group in resp["groups"]:
-            question_groups.append(GroupsDAO.get_group(group["group_id"]).label)
-
-        resp["groups"] = question_groups
-
         return QuestionsDAO._construct(resp)
 
     @staticmethod
-    def get_questions(search_string="", column_to_order="", descending=False):
+    def get_questions(search_string="", order_by="id", order="asc", count=-1, offset=0):
+        params = {
+            "search_string": search_string,
+            "order": order,
+            "orderBy": order_by,
+            "resultsCount": count,
+            "offset": offset
+        }
         resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host),
-                            json={"search_string": search_string, "column_to_order": column_to_order,
-                                  "descending": descending})
+                            params=params)
 
         if resp.status_code != 200:
             raise Exception(resp.status_code, resp.text)
 
         resp = resp.json()
 
-        group_ids = {g["group_id"] for q in resp for g in q["groups"]}
-        group_names = {}
+        questions = (QuestionsDAO._construct(q) for q in resp["questions"])
 
-        for g_id in group_ids:
-            group_names[g_id] = GroupsDAO.get_group(g_id).label
-
-        for q in resp:
-            q["groups"] = [group_names[group["group_id"]] for group in q["groups"]]
-
-            yield QuestionsDAO._construct(q)
+        return resp["results_total"], resp["results_count"], questions
 
     @staticmethod
     def create_question(question: Question):
@@ -145,7 +137,7 @@ class QuestionsDAO:
             "type": question.type.value
         }
 
-        resp = requests.post(QuestionsDAO.__resource.format(QuestionsDAO.__host) + f'/{question.id}', json=req)
+        resp = requests.patch(QuestionsDAO.__resource.format(QuestionsDAO.__host) + f'/{question.id}', json=req)
 
         return '', resp.status_code
 

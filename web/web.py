@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
+from data_accessors.briges import BridgeService
 from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType, SettingsDAO as QuestionSettingsDAO, \
     Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO, AnswerState
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
@@ -85,14 +86,14 @@ def questions_ajax():
 
     cur_order = orders[int(args["order[0][column]"])]
 
-    res["recordsTotal"] = len([q for q in QuestionsDAO.get_questions()])
+    total, filtered, questions = QuestionsDAO.get_questions(args['search[value]'], cur_order, args["order[0][dir]"],
+                                                            length, offset)
+    questions = list(questions)
 
-    questions = [q for q in
-                 QuestionsDAO.get_questions(args['search[value]'], cur_order, args["order[0][dir]"] != "asc")]
+    res["recordsFiltered"] = filtered
+    res["recordsTotal"] = total
 
-    res["recordsFiltered"] = len(questions)
-
-    questions = questions[offset:offset + length]
+    BridgeService.load_groups_into_questions(questions)
 
     for q in questions:
         if q.options:
@@ -414,9 +415,8 @@ def timeline():
 
 @socketio.on("get_question_stat")
 def get_question_stat(data):
-    # res = StatisticsDAO.get_question_statistics(data["question_id"],
-    #                                             data["person_id"] if "person_id" in data.keys() else "")
     question = QuestionsDAO.get_question(data["question_id"])
+    BridgeService.load_groups_into_questions([question])
 
     _, answers = AnswerRecordDAO.get_records(data["question_id"], data["person_id"])
     res = {
