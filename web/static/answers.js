@@ -20,12 +20,13 @@ const table = new DataTable('#table', {
         },
         {
             orderable: false,
+            width: "8%",
             render: function (data, d, row) {
-                return `<div class="col"><button class="btn btn-outline-danger"
+                return `<div class="col"><button class="btn btn-outline-danger btn-sm"
                         onclick="removeAnswer(this);" data-answer-id="${row[0]}">
                     <i class="bi bi-trash" style="font-size: 1rem; color: currentColor;"></i>
                 </button>
-                <button class="btn btn-outline-success"
+                <button class="btn btn-outline-success btn-sm"
                         onclick="saveAnswer(this);" data-answer-id="${row[0]}">
                     <i class="bi bi-pencil-square" style="font-size: 1rem; color: currentColor;"></i>
                 </button></div>`;

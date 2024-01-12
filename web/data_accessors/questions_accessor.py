@@ -82,9 +82,12 @@ class QuestionsDAO:
 
     @staticmethod
     def get_question(question_id: int) -> Question:
-        resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host) + str(question_id)).json()
+        resp = requests.get(QuestionsDAO.__resource.format(QuestionsDAO.__host) + str(question_id))
 
-        return QuestionsDAO._construct(resp)
+        if resp.status_code != 200:
+            raise Exception(resp.status_code, resp.text)
+
+        return QuestionsDAO._construct(resp.json())
 
     @staticmethod
     def get_questions(search_string="", order_by="id", order="asc", count=-1, offset=0):
