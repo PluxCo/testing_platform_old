@@ -7,12 +7,13 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, s
 from flask_socketio import SocketIO, emit
 
 from data_accessors.auth_accessor import GroupsDAO, Group, PersonDAO
+from data_accessors.briges import BridgeService
 from data_accessors.questions_accessor import QuestionsDAO, Question, QuestionType, SettingsDAO as QuestionSettingsDAO, \
     Settings as QuestionSettings, StatisticsDAO, AnswerRecordDAO, AnswerState
 from data_accessors.tg_accessor import SettingsDAO as TgSettingsDAO, Settings as TgSettings
 from forms import CreateQuestionForm, ImportQuestionForm, EditQuestionForm, DeleteQuestionForm, CreateGroupForm, \
     TelegramSettingsForm, ScheduleSettingsForm, PausePersonForm, PlanQuestionForm
-from forms.answers import DeleteAnswerRecordForm, GradeAnswerRecordForm
+from forms.answers import DeleteAnswerRecordForm
 from utils import fusionauth_login_required
 
 app = Flask(__name__)
@@ -85,14 +86,14 @@ def questions_ajax():
 
     cur_order = orders[int(args["order[0][column]"])]
 
-    res["recordsTotal"] = len([q for q in QuestionsDAO.get_questions()])
+    total, filtered, questions = QuestionsDAO.get_questions(args['search[value]'], cur_order, args["order[0][dir]"],
+                                                            length, offset)
+    questions = list(questions)
 
-    questions = [q for q in
-                 QuestionsDAO.get_questions(args['search[value]'], cur_order, args["order[0][dir]"] != "asc")]
+    res["recordsFiltered"] = filtered
+    res["recordsTotal"] = total
 
-    res["recordsFiltered"] = len(questions)
-
-    questions = questions[offset:offset + length]
+    BridgeService.load_groups_into_questions(questions)
 
     for q in questions:
         if q.options:
@@ -129,7 +130,7 @@ def questions_page():
                                 subject=create_question_form.subject.data,
                                 options=options,
                                 answer=create_question_form.answer.data,
-                                groups=selected_groups,
+                                group_ids=selected_groups,
                                 level=create_question_form.level.data,
                                 article=create_question_form.article.data,
                                 q_type=QuestionType.OPEN if create_question_form.is_open.data else QuestionType.TEST)
@@ -161,7 +162,7 @@ def questions_page():
                                               text=record["question"],
                                               subject=import_question_form.subject.data,
                                               options=record["options"],
-                                              groups=selected_groups,
+                                              group_ids=selected_groups,
                                               answer=answer,
                                               level=record["difficulty"],
                                               article=import_question_form.article.data,
@@ -249,22 +250,14 @@ def settings_page():
 @app.route('/answers', methods=["POST", "GET"])
 @fusionauth_login_required
 def answers_history():
-    grade_answer_form = GradeAnswerRecordForm()
     delete_answer_form = DeleteAnswerRecordForm()
-
-    if grade_answer_form.save.data and grade_answer_form.validate():
-        answer_id = int(grade_answer_form.id.data)
-
-        AnswerRecordDAO.grade_answer(answer_id, float(grade_answer_form.points.data))
-
-        return redirect("/answers")
 
     if delete_answer_form.delete.data:
         AnswerRecordDAO.delete_record(int(delete_answer_form.id.data))
 
         return redirect("/answers")
 
-    return render_template('answers history.html', grade_answer_form=grade_answer_form,
+    return render_template('answers history.html',
                            delete_answer_form=delete_answer_form)
 
 
@@ -414,11 +407,10 @@ def timeline():
 
 @socketio.on("get_question_stat")
 def get_question_stat(data):
-    # res = StatisticsDAO.get_question_statistics(data["question_id"],
-    #                                             data["person_id"] if "person_id" in data.keys() else "")
     question = QuestionsDAO.get_question(data["question_id"])
+    BridgeService.load_groups_into_questions([question])
 
-    _, answers = AnswerRecordDAO.get_records(data["question_id"], data["person_id"])
+    _, answers = AnswerRecordDAO.get_records(data["question_id"], data.get("person_id"))
     res = {
         "question": question.to_dict(),
         "answers": list(record.to_dict(("ask_time", "answer_time", "person_answer", "points", "state"))
@@ -433,8 +425,6 @@ def get_answers_stat(data):
     page_size = 30
     total, answers = AnswerRecordDAO.get_records(None, data["person_id"],
                                                  count=page_size, offset=data["page"] * page_size)
-
-    print(total)
 
     res = {
         "answers": [a.to_dict(("points", "state", "question_id")) for a in answers],
