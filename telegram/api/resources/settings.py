@@ -1,8 +1,14 @@
+import datetime
+
 from flask_restful import Resource, reqparse
+
 from tools import Settings
 
 post_settings_parser = reqparse.RequestParser()
-post_settings_parser.add_argument('pin', type=str)
+post_settings_parser.add_argument('pin', type=str, required=False)
+post_settings_parser.add_argument("from_time", type=str, required=False)
+post_settings_parser.add_argument('to_time', type=str, required=False)
+post_settings_parser.add_argument('amount_of_questions', type=int, required=False)
 
 
 class SettingsResource(Resource):
@@ -11,12 +17,13 @@ class SettingsResource(Resource):
         return current_settings, 200
 
     def post(self):
-        args = post_settings_parser.parse_args()
-        if args['pin'].isdigit():
-            current_settings = Settings()
-            args = {'pin': args['pin']}
-            current_settings.update(args)
-            current_settings.update_settings()
-            return 200
-        else:
-            return 404
+        current_settings = Settings()
+        args = {k: v for k, v in post_settings_parser.parse_args().items() if v is not None and k in current_settings}
+        if 'pin' in args.keys():
+            args["pin"] = int(args["pin"])
+        if 'from_time' in args.keys():
+            args['from_time'] = datetime.time.fromisoformat(args["from_time"])
+            args['to_time'] = datetime.time.fromisoformat(args["to_time"])
+        current_settings.update(args)
+        current_settings.update_settings()
+        return 200

@@ -17,6 +17,15 @@ class AnswerType(enum.Enum):
     REPLY = 2
 
 
+class SessionState(enum.Enum):
+    """
+    Enumeration representing different states of sessions.
+    """
+    PENDING = 0
+    OPEN = 1
+    CLOSE = 2
+
+
 class Person:
     def __init__(self):
         self.full_name = None
@@ -37,3 +46,21 @@ class Person:
                 {"groupId": group, "level": self.group_levels[group]})
 
         return person_info
+
+
+class MessageResponse:
+    def __init__(self, sent_messages):
+        self.sent_messages = sent_messages
+
+
+class SessionInfo:
+
+    def __init__(self, user_id, state):
+        self.user_id = user_id
+        self.state = state
+
+
+class MessageInfo:
+    def __init__(self, message_id, session: SessionInfo):
+        self.message_id = message_id
+        self.session = session
