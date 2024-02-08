@@ -1,3 +1,4 @@
+import datetime
 import logging
 import os
 import random
@@ -7,17 +8,19 @@ from threading import Thread
 import requests
 import telebot
 from requests import post, get
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 
-from bot.models.telegram_types import MessageType, AnswerType
-from bot.models.telegram_types import Person
+from bot.models.telegram_types import MessageType, AnswerType, Person, SessionState
+from bot.models.response_types import SessionInfo, MessageInfo, MessageResponse
+
 from models.db_session import create_session
-from models.messagemodel import MessageModel as MessageModel
+from models.message import Message as MessageModel
 from models.user import User
+from models.sessions import Session
 from tools import Settings
 
-bot = telebot.TeleBot(os.environ['TG_TOKEN'])
+bot = telebot.TeleBot(os.environ["TG_TOKEN"])
 people = dict()
 
 stickers = {"right_answer": ["CAACAgIAAxkBAAKlemTKcX143oNSqGVlHIjpmf5aWzRBAAJKFwACerrwSw3OVyhI-ZjLLwQ",
@@ -61,14 +64,14 @@ def start_handler(message):
                      'вопросов.', reply_markup=start_markup)
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith('start') or call.data.startswith('end'))
+@bot.callback_query_handler(func=lambda call: call.data.startswith("start") or call.data.startswith("end"))
 def submit_buttons(call: CallbackQuery):
     if call.data == "start":
-        message = bot.send_message(call.message.chat.id, 'Введите код доступа')
+        message = bot.send_message(call.message.chat.id, "Введите код доступа")
         bot.edit_message_reply_markup(call.from_user.id, call.message.id, reply_markup=None)
         bot.register_next_step_handler(message, password_check)
 
-    elif call.data == 'end_of_register':
+    elif call.data == "end_of_register":
         bot.edit_message_reply_markup(call.from_user.id, call.message.id, reply_markup=None)
         target_level(call.message)
 
@@ -194,11 +197,9 @@ def select_groups(call: CallbackQuery):
     bot.edit_message_reply_markup(call.from_user.id, call.message.id, reply_markup=groups_markup)
 
 
-# TODO Webhook process
-
 def send_messages(messages, webhook):
-    # array of id of sending messages
-    ids = []
+    # array of message_id of sending messages
+    message_ids = []
     tg_ids = []
     user_fusion_ids = [message["user_id"] for message in messages]
     users_ids = {}
@@ -206,22 +207,23 @@ def send_messages(messages, webhook):
         current_users = db.scalars(select(User).where(User.auth_id.in_(user_fusion_ids)))
         for user in current_users:
             users_ids[user.auth_id] = user.tg_id
-
     for message in messages:
+
         user_id, reply_to, message_type, data = (message["user_id"], message.get("reply_to"),
                                                  MessageType(message["type"]), message["data"])
         if str(user_id) not in users_ids.keys():
-            ids.append(None)
+            message_ids.append(None)
             tg_ids.append(None)
             continue
         current_tg_id = users_ids[str(user_id)]
+
         tg_ids.append(current_tg_id)
-        id = None
+        message_id = None
 
         # sending simple message
         if message_type == MessageType.SIMPLE:
             message = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to)
-            id = message.message_id
+            message_id = message.message_id
             try:
                 bot.register_next_step_handler(message, get_answer)
             except Exception as e:
@@ -233,28 +235,58 @@ def send_messages(messages, webhook):
             for btn_id in range(len(data["buttons"])):
                 btn_group.add(InlineKeyboardButton(data["buttons"][btn_id], callback_data="answer_" + str(btn_id)),
                               row_width=len(data["buttons"]))
-            id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to,
-                                  reply_markup=btn_group).message_id
+            message_id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to,
+                                          reply_markup=btn_group).message_id
 
 
         # sending motivation
         elif message_type == MessageType.MOTIVATION:
-            id = bot.send_sticker(int(current_tg_id),
-                                  stickers["is_registered"][
-                                      random.randint(0, len(stickers["is_registered"]) - 1)],
-                                  reply_to_message_id=reply_to).message_id
+            message_id = bot.send_sticker(int(current_tg_id),
+                                          stickers["is_registered"][
+                                              random.randint(0, len(stickers["is_registered"]) - 1)],
+                                          reply_to_message_id=reply_to).message_id
 
-        ids.append(id)
-
+        message_ids.append(message_id)
+    messages_info = []
     with create_session() as db:
-        for i in range(len(ids)):
-            if ids[i] is not None:
+        for i in range(len(message_ids)):
+            current_session = db.scalar(select(Session).where(Session.user_tg_id == tg_ids[i],
+                                                              or_(Session.session_state == SessionState.OPEN.value,
+                                                                  Session.session_state == SessionState.PENDING.value)))
+
+            if message_ids[i] is not None:
+                if current_session:
+                    if current_session.session_state == SessionState.OPEN.value:
+                        if current_session.amount_of_questions + 1 >= Settings()["amount_of_questions"] or (
+                                datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
+                                "session_duration"]:
+                            current_session.session_state = SessionState.CLOSE.value
+                    current_session_id = current_session.id
+                    current_session_state = current_session.session_state
+                else:
+                    new_session = Session(session_state=SessionState.PENDING.value,
+                                          user_tg_id=int(tg_ids[i]),
+                                          opening_time=datetime.datetime.now(),
+                                          amount_of_questions=0)
+                    db.add(new_session)
+                    db.commit()
+                    current_session_id = new_session.id
+                    current_session_state = new_session.session_state
+                current_fusion_id = db.get(User, tg_ids[i]).auth_id
+                message_info = MessageInfo(int(message_ids[i]), SessionInfo(current_fusion_id, current_session_state))
+            else:
+                message_info = MessageInfo(None, SessionInfo(None, SessionState.CLOSE.value))
+
+            messages_info.append(message_info)
+            if message_ids[i] is not None:
                 db.add(MessageModel(tg_id=int(tg_ids[i]),
-                                    message_id=str(ids[i]),
+                                    message_id=str(message_ids[i]),
                                     webhook=str(webhook),
-                                    message_type=message_type.value))
-        db.commit()
-    return ids
+                                    message_type=message_type.value,
+                                    session_id=current_session_id))
+                db.commit()
+        response = MessageResponse(messages_info)
+    return response
 
 
 def get_answer(message: Message):
@@ -262,12 +294,24 @@ def get_answer(message: Message):
         bot.send_message(message.from_user.id, "Чтобы дать ответ, ответьте на сообщение с вопросом")
         bot.register_next_step_handler(message, get_answer)
     else:
+
         with create_session() as db:
+            current_session = db.scalar(select(Session).where(Session.user_tg_id == message.from_user.id,
+                                                              Session.session_state_in(SessionState.OPEN.value,
+                                                                                       SessionState.PENDING.value)))
             question_message = db.scalar(
                 select(MessageModel).where(MessageModel.message_id == message.reply_to_message.id,
                                            MessageModel.tg_id == message.from_user.id))
             if question_message:
                 user_id = db.get(User, question_message.tg_id)
+
+            if current_session:
+                if current_session.session_state == SessionState.OPEN.value:
+                    if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
+                            "session_duration"]:
+                        current_session.session_state = SessionState.CLOSE.value
+                else:
+                    current_session.session_state = SessionState.OPEN.value
         if question_message is not None and user_id:
             try:
                 r = requests.post(question_message.webhook,
@@ -301,6 +345,7 @@ def handling_button_answers(call: CallbackQuery):
 
             except Exception as e:
                 bot.edit_message_reply_markup(call.from_user.id, call.message.id)
+
 
 @bot.message_handler()
 def strange_messages(message: Message):

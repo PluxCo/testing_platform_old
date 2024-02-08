@@ -21,7 +21,7 @@ def global_init(db_file):
         db_session_logger.exception("Исключение не указан файл базы данных")
         raise Exception("Необходимо указать файл базы данных.")
 
-    conn_str = f'sqlite:///{db_file.strip()}?check_same_thread=False'
+    conn_str = f"sqlite:///{db_file.strip()}?check_same_thread=False"
     db_session_logger.info(f"Подключение к базе данных по адресу {conn_str}")
 
     engine = sa.create_engine(conn_str, echo=False)

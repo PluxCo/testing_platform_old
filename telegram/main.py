@@ -7,9 +7,8 @@ from tools import Settings, setup_logger
 
 default_settings = {
     "pin": "32266",
-    "from_time": datetime.time(0),
-    "to_time": datetime.time(23, 59),
-    "amount_of_questions": 10
+    "amount_of_questions": 10,
+    "session_duration": datetime.timedelta(minutes=10)
 }
 main_logger = setup_logger(__name__)
 
