@@ -11,7 +11,8 @@ from requests import post, get
 from sqlalchemy import select, or_
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 
-from bot.models.telegram_types import MessageType, AnswerType, Person, SessionState
+from bot.models.telegram_types import MessageType, AnswerType, Person, SessionState, SimpleMessage, MessageWithButtons, \
+    Motivation
 from bot.models.response_types import SessionInfo, MessageInfo, MessageResponse, Webhook, Reply, Button
 from bot.models.response_types import Message as AnswerMessageType
 
@@ -211,8 +212,7 @@ def send_messages(messages, webhook):
             users_ids[user.auth_id] = user.tg_id
     for message in messages:
 
-        user_id, reply_to, message_type, data = (message["user_id"], message.get("reply_to"),
-                                                 MessageType(message["type"]), message["data"])
+        user_id = message["user_id"]
         if str(user_id) not in users_ids.keys():
             message_ids.append(None)
             tg_ids.append(None)
@@ -223,26 +223,27 @@ def send_messages(messages, webhook):
         message_id = None
 
         # sending simple message
-        if message_type == MessageType.SIMPLE:
-            message = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to)
-            message_id = message.message_id
+        if message["type"] == MessageType.SIMPLE.value:
+            current_message = SimpleMessage(message)
+            message_id = bot.send_message(int(current_tg_id), current_message.text).message_id
+
 
         # sending message with buttons
-        elif message_type == MessageType.WITH_BUTTONS:
+        elif message["type"] == MessageType.WITH_BUTTONS.value:
+            current_message = MessageWithButtons(message)
             btn_group = InlineKeyboardMarkup()
-            for btn_id in range(len(data["buttons"])):
-                btn_group.add(InlineKeyboardButton(data["buttons"][btn_id], callback_data="answer_" + str(btn_id)),
-                              row_width=len(data["buttons"]))
-            message_id = bot.send_message(int(current_tg_id), data["text"], reply_to_message_id=reply_to,
+            for btn_id in range(len(current_message.buttons)):
+                btn_group.add(InlineKeyboardButton(current_message.buttons[btn_id], callback_data="answer_" + str(btn_id)),
+                              row_width=len(current_message.buttons))
+            message_id = bot.send_message(int(current_tg_id), current_message.text,
                                           reply_markup=btn_group).message_id
 
 
         # sending motivation
-        elif message_type == MessageType.MOTIVATION:
+        elif message["type"] == MessageType.MOTIVATION.value:
             message_id = bot.send_sticker(int(current_tg_id),
                                           stickers["is_registered"][
-                                              random.randint(0, len(stickers["is_registered"]) - 1)],
-                                          reply_to_message_id=reply_to).message_id
+                                              random.randint(0, len(stickers["is_registered"]) - 1)]).message_id
 
         message_ids.append(message_id)
     messages_info = []
@@ -256,7 +257,7 @@ def send_messages(messages, webhook):
                 if current_session:
                     if current_session.session_state == SessionState.OPEN.value:
                         if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                                "session_duration"] or current_session.amount_of_questions + 1 >= Settings()[
+                            "session_duration"] or current_session.amount_of_questions + 1 >= Settings()[
                                 "amount_of_questions"]:
                             current_session.session_state = SessionState.CLOSE.value
                     current_session_id = current_session.id
@@ -280,7 +281,7 @@ def send_messages(messages, webhook):
                 db.add(MessageModel(tg_id=int(tg_ids[i]),
                                     message_id=str(message_ids[i]),
                                     webhook=str(webhook),
-                                    message_type=message_type.value,
+                                    message_type=current_message.type,
                                     session_id=current_session_id))
                 db.commit()
         response = MessageResponse(messages_info)
@@ -308,7 +309,7 @@ def get_answer(message: Message):
                     current_session.amount_of_questions += 1
                     if current_session.session_state == SessionState.OPEN.value:
                         if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                                "session_duration"]:
+                            "session_duration"]:
                             current_session.session_state = SessionState.CLOSE.value
                             session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)
                         else:
@@ -347,7 +348,7 @@ def handling_button_answers(call: CallbackQuery):
                 current_session.amount_of_questions += 1
                 if current_session.session_state == SessionState.OPEN.value:
                     if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                            "session_duration"]:
+                        "session_duration"]:
                         current_session.session_state = SessionState.CLOSE.value
 
                         session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)
