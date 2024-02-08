@@ -1,6 +1,7 @@
 import enum
 import uuid
 import abc
+import json
 
 
 class MessageType(enum.Enum):
@@ -55,25 +56,27 @@ class Message(abc.ABC):
 
 
 class SimpleMessage(Message):
-    type = MessageType.SIMPLE.value
 
-    def __init__(self, user_id, text):
-        self.user_id = user_id
-        self.text = text
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.SIMPLE.value
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
 
 
 class MessageWithButtons(Message):
-    type = MessageType.WITH_BUTTONS.value
 
-    def __init__(self, user_id, text, buttons):
-        self.user_id = user_id
-        self.text = text
-        self.buttons = buttons
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.WITH_BUTTONS.value
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
+        self.buttons = dictionary_obj["buttons"]
 
 
 class Motivation(Message):
-    type = MessageType.MOTIVATION.value
 
-    def __init__(self, user_id, text):
-        self.user_id = user_id
-        self.text = text
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.MOTIVATION.value
+
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
+
