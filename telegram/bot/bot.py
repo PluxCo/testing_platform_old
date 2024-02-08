@@ -309,7 +309,7 @@ def get_answer(message: Message):
                     current_session.amount_of_questions += 1
                     if current_session.session_state == SessionState.OPEN.value:
                         if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                            "session_duration"]:
+                                "session_duration"]:
                             current_session.session_state = SessionState.CLOSE.value
                             session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)
                         else:
@@ -348,7 +348,7 @@ def handling_button_answers(call: CallbackQuery):
                 current_session.amount_of_questions += 1
                 if current_session.session_state == SessionState.OPEN.value:
                     if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                        "session_duration"]:
+                            "session_duration"]:
                         current_session.session_state = SessionState.CLOSE.value
 
                         session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)

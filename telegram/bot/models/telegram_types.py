@@ -1,7 +1,6 @@
 import enum
 import uuid
 import abc
-import json
 
 
 class MessageType(enum.Enum):
