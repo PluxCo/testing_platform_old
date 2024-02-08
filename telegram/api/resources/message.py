@@ -15,4 +15,4 @@ class MessageResource(Resource):
         webhook = args["webhook"]
 
         return {
-            "response": json.dumps(send_messages(messages, webhook), default=lambda o: o.__dict__)}, 200
+            "response": json.dumps(send_messages(messages, webhook).__dict__, default=lambda o: o.__dict__)}, 200

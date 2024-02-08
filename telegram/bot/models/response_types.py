@@ -1,6 +1,6 @@
 import requests
 import json
-import telegram_types
+
 import abc
 
 
