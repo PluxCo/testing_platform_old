@@ -1,3 +1,5 @@
+from bot.models.telegram_types import Message
+
 from flask_restful import Resource, reqparse
 
 from bot.bot import send_messages
@@ -15,4 +17,6 @@ class MessageResource(Resource):
         webhook = args["webhook"]
 
         return {
-            "response": json.dumps(send_messages(messages, webhook).__dict__, default=lambda o: o.__dict__)}, 200
+            "response": json.loads(json.dumps(send_messages(messages, webhook), default=lambda o: o.__dict__))}, 200
+
+

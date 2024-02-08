@@ -12,5 +12,5 @@ class Session(SqlAlchemyBase, SerializerMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     session_state = Column(Integer)
     user_tg_id = Column(Integer)
-    opening_time = Column(DateTime)
+    opening_time: Mapped[datetime.datetime]
     amount_of_questions = Column(Integer)

@@ -1,5 +1,6 @@
 import enum
 import uuid
+import abc
 
 
 class MessageType(enum.Enum):
@@ -46,3 +47,33 @@ class Person:
                 {"groupId": group, "level": self.group_levels[group]})
 
         return person_info
+
+
+class Message(abc.ABC):
+    user_id = None
+    type = None
+
+
+class SimpleMessage(Message):
+    type = MessageType.SIMPLE.value
+
+    def __init__(self, user_id, text):
+        self.user_id = user_id
+        self.text = text
+
+
+class MessageWithButtons(Message):
+    type = MessageType.WITH_BUTTONS.value
+
+    def __init__(self, user_id, text, buttons):
+        self.user_id = user_id
+        self.text = text
+        self.buttons = buttons
+
+
+class Motivation(Message):
+    type = MessageType.MOTIVATION.value
+
+    def __init__(self, user_id, text):
+        self.user_id = user_id
+        self.text = text
