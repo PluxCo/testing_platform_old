@@ -241,6 +241,7 @@ def send_messages(messages, webhook):
 
         # sending motivation
         elif message["type"] == MessageType.MOTIVATION.value:
+            current_message = Motivation(message)
             message_id = bot.send_sticker(int(current_tg_id),
                                           stickers["is_registered"][
                                               random.randint(0, len(stickers["is_registered"]) - 1)]).message_id
