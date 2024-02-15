@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 import requests
 import json
@@ -30,25 +31,25 @@ class UserAnswer(abc.ABC):
 
 
 class Button(UserAnswer):
-    type = AnswerType.BUTTON.value
-
     def __init__(self, button_id, message_id):
+        self.type = AnswerType.BUTTON.value
+
         self.button_id = button_id
         self.message_id = message_id
 
 
 class Message(UserAnswer):
-    type = AnswerType.MESSAGE.value
-
     def __init__(self, text, message_id):
+        self.type = AnswerType.MESSAGE.value
+
         self.text = text
         self.message_id = message_id
 
 
 class Reply(UserAnswer):
-    type = AnswerType.REPLY.value
-
     def __init__(self, text, message_id, reply_to):
+        self.type = AnswerType.REPLY.value
+
         self.text = text
         self.message_id = message_id
         self.reply_to = reply_to
@@ -61,8 +62,11 @@ class Webhook:
 
     def post(self, webhook):
         try:
-            r = requests.post(webhook,
-                              json=json.loads(json.dumps(self, default=lambda o: o.__dict__, sort_keys=True))).json()
+            # FIXME: fix that shit 🫠
+            req = json.loads(json.dumps(self, default=lambda o: o.__dict__, sort_keys=True))
+            logging.debug(f"Request: {req}")
+            r = requests.post(webhook, json=req).json()
             return bool(r["clear_buttons"])
         except:
+            logging.exception("aboba")
             return False
