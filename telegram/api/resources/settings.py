@@ -1,22 +1,28 @@
+import datetime
+
 from flask_restful import Resource, reqparse
+
 from tools import Settings
 
 post_settings_parser = reqparse.RequestParser()
-post_settings_parser.add_argument('pin', type=str)
+post_settings_parser.add_argument("pin", type=str, required=False)
+post_settings_parser.add_argument("session_duration", type=float, required=False)
+post_settings_parser.add_argument("amount_of_questions", type=int, required=False)
 
 
 class SettingsResource(Resource):
     def get(self):
         current_settings = Settings().copy()
+        current_settings["session_duration"] = current_settings["session_duration"].total_seconds()
         return current_settings, 200
 
     def post(self):
-        args = post_settings_parser.parse_args()
-        if args['pin'].isdigit():
-            current_settings = Settings()
-            args = {'pin': args['pin']}
-            current_settings.update(args)
-            current_settings.update_settings()
-            return 200
-        else:
-            return 404
+        current_settings = Settings()
+        args = {k: v for k, v in post_settings_parser.parse_args().items() if v is not None and k in current_settings}
+        if "pin" in args.keys():
+            args["pin"] = int(args["pin"])
+        if "session_duration" in args.keys():
+            args["session_duration"] = datetime.timedelta(seconds=args["session_duration"])
+        current_settings.update(args)
+        current_settings.update_settings()
+        return 200

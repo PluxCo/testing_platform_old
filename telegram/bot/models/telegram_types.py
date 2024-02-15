@@ -1,5 +1,6 @@
 import enum
 import uuid
+import abc
 
 
 class MessageType(enum.Enum):
@@ -15,6 +16,15 @@ class AnswerType(enum.Enum):
     BUTTON = 0
     MESSAGE = 1
     REPLY = 2
+
+
+class SessionState(enum.Enum):
+    """
+    Enumeration representing different states of sessions.
+    """
+    PENDING = 0
+    OPEN = 1
+    CLOSE = 2
 
 
 class Person:
@@ -37,3 +47,35 @@ class Person:
                 {"groupId": group, "level": self.group_levels[group]})
 
         return person_info
+
+
+class Message(abc.ABC):
+    user_id = None
+    type = None
+
+
+class SimpleMessage(Message):
+
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.SIMPLE.value
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
+
+
+class MessageWithButtons(Message):
+
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.WITH_BUTTONS.value
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
+        self.buttons = dictionary_obj["buttons"]
+
+
+class Motivation(Message):
+
+    def __init__(self, dictionary_obj: dict):
+        self.type = MessageType.MOTIVATION.value
+
+        self.user_id = dictionary_obj["user_id"]
+        self.text = dictionary_obj["text"]
+

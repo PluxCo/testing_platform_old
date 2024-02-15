@@ -1,9 +1,15 @@
-from bot import bot
+import datetime
+
 from api.telegram_api import app
+from bot import bot
 from models import db_session
 from tools import Settings, setup_logger
 
-default_settings = {"pin": "32266"}
+default_settings = {
+    "pin": "32266",
+    "amount_of_questions": 10,
+    "session_duration": datetime.timedelta(minutes=10).total_seconds()
+}
 main_logger = setup_logger(__name__)
 
 if __name__ == "__main__":
