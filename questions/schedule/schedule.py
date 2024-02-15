@@ -62,4 +62,4 @@ class Schedule(Thread):
 
             self.connector.transfer(users_sessions)
         except Exception as e:
-            logging.error(e)
+            logging.exception(e)

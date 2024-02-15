@@ -1,10 +1,13 @@
+import datetime
 import os
 
 import requests
 
 
 class Settings:
-    def __init__(self, pin: str):
+    def __init__(self, pin: str, session_duration: datetime.timedelta, max_interactions: int):
+        self.max_interactions = max_interactions
+        self.session_duration = session_duration
         self.pin = pin
 
 
@@ -18,7 +21,9 @@ class SettingsDAO:
 
     @staticmethod
     def _construct(resp):
-        q = Settings(resp['pin'])
+        q = Settings(resp['pin'],
+                     datetime.timedelta(seconds=resp['session_duration']),
+                     resp['amount_of_questions'])
         return q
 
     @staticmethod
@@ -28,6 +33,10 @@ class SettingsDAO:
 
     @staticmethod
     def update_settings(settings: Settings):
-        req = {"pin": settings.pin}
+        req = {
+            "pin": settings.pin,
+            "session_duration": settings.session_duration.total_seconds(),
+            "amount_of_questions": settings.max_interactions
+        }
 
         resp = requests.post(SettingsDAO.__resource.format(SettingsDAO.__host), json=req)

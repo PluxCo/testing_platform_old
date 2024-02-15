@@ -43,7 +43,11 @@ class SettingsResource(Resource):
 
         if "time_period" in args:
             args["time_period"] = datetime.timedelta(seconds=args["time_period"])
+
+        if "from_time" in args:
             args["from_time"] = datetime.time.fromisoformat(args["from_time"])
+
+        if "to_time" in args:
             args["to_time"] = datetime.time.fromisoformat(args["to_time"])
 
         current_settings.update(args)

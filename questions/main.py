@@ -1,9 +1,12 @@
 import datetime
+import logging
 
 from api.api import app as flask_app
 from models import db_session
 from schedule.schedule import Schedule
 from tools import Settings
+
+logging.basicConfig(level=logging.DEBUG)
 
 default_settings = {"time_period": datetime.timedelta(seconds=30),
                     "from_time": datetime.time(0),
