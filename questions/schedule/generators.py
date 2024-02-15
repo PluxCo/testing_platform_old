@@ -201,7 +201,6 @@ class Session:
         self.person = person
 
         self._questions: list[AnswerRecord] = []
-        self._start_time = datetime.datetime.now()
 
         self.generator = StatRandomGenerator()
 
@@ -210,7 +209,6 @@ class Session:
         Generate questions for the session.
         """
         self._questions = self.generator.next_bunch(self.person, 1)
-        self._start_time = datetime.datetime.now()
 
     def next_question(self) -> Optional[AnswerRecord]:
         """
@@ -219,6 +217,7 @@ class Session:
         Returns:
             Optional[AnswerRecord]: The next question or None if the session is over.
         """
+
         if not self._questions:
             return None
 

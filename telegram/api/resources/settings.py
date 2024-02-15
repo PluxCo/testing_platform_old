@@ -13,7 +13,6 @@ post_settings_parser.add_argument("amount_of_questions", type=int, required=Fals
 class SettingsResource(Resource):
     def get(self):
         current_settings = Settings().copy()
-        current_settings["session_duration"] = current_settings["session_duration"].total_seconds()
         return current_settings, 200
 
     def post(self):
@@ -21,8 +20,6 @@ class SettingsResource(Resource):
         args = {k: v for k, v in post_settings_parser.parse_args().items() if v is not None and k in current_settings}
         if "pin" in args.keys():
             args["pin"] = int(args["pin"])
-        if "session_duration" in args.keys():
-            args["session_duration"] = datetime.timedelta(seconds=args["session_duration"])
         current_settings.update(args)
         current_settings.update_settings()
         return 200

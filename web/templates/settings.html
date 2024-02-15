@@ -5,7 +5,8 @@
         <h1>Settings</h1>
         <div class="row">
             <div class="col col-md-2">
-                <div class="nav flex-column nav-pills me-3" id="v-pills-settings-tab" role="tablist" aria-orientation="vertical">
+                <div class="nav flex-column nav-pills me-3" id="v-pills-settings-tab" role="tablist"
+                     aria-orientation="vertical">
                     <button class="nav-link active" id="v-pills-groups-tab" data-bs-toggle="pill"
                             data-bs-target="#v-pills-groups" type="button" role="tab" aria-controls="v-pills-groups"
                             aria-selected="true">Groups
@@ -71,6 +72,15 @@
                                 <div class="mb-3">
                                     {{ tg_settings_form.tg_pin.label(class_="form-label") }}
                                     {{ tg_settings_form.tg_pin(class_="form-control") }}
+                                </div>
+                                <h4 class="mt-5 mb-3">Session settings</h4>
+                                <div class="mb-3">
+                                    {{ tg_settings_form.session_duration.label(class_="form-label") }}
+                                    {{ tg_settings_form.session_duration(class_="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ tg_settings_form.max_interactions.label(class_="form-label") }}
+                                    {{ tg_settings_form.max_interactions(class_="form-control") }}
                                 </div>
                                 {% for field, error in tg_settings_form.errors.items() %}
                                     <div class="alert alert-warning">

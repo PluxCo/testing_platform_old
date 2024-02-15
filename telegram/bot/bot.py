@@ -233,8 +233,9 @@ def send_messages(messages, webhook):
             current_message = MessageWithButtons(message)
             btn_group = InlineKeyboardMarkup()
             for btn_id in range(len(current_message.buttons)):
-                btn_group.add(InlineKeyboardButton(current_message.buttons[btn_id], callback_data="answer_" + str(btn_id)),
-                              row_width=len(current_message.buttons))
+                btn_group.add(
+                    InlineKeyboardButton(current_message.buttons[btn_id], callback_data="answer_" + str(btn_id)),
+                    row_width=len(current_message.buttons))
             message_id = bot.send_message(int(current_tg_id), current_message.text,
                                           reply_markup=btn_group).message_id
 
@@ -256,11 +257,6 @@ def send_messages(messages, webhook):
 
             if message_ids[i] is not None:
                 if current_session:
-                    if current_session.session_state == SessionState.OPEN.value:
-                        if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                            "session_duration"] or current_session.amount_of_questions + 1 >= Settings()[
-                                "amount_of_questions"]:
-                            current_session.session_state = SessionState.CLOSE.value
                     current_session_id = current_session.id
                     current_session_state = current_session.session_state
                 else:
@@ -309,8 +305,9 @@ def get_answer(message: Message):
                 if current_session:
                     current_session.amount_of_questions += 1
                     if current_session.session_state == SessionState.OPEN.value:
-                        if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                                "session_duration"]:
+                        if ((datetime.datetime.now() - current_session.opening_time).total_seconds()
+                                >= Settings()["session_duration"] or
+                                current_session.amount_of_questions >= Settings()["amount_of_questions"]):
                             current_session.session_state = SessionState.CLOSE.value
                             session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)
                         else:
@@ -348,8 +345,10 @@ def handling_button_answers(call: CallbackQuery):
             if current_session:
                 current_session.amount_of_questions += 1
                 if current_session.session_state == SessionState.OPEN.value:
-                    if (datetime.datetime.now() - current_session.opening_time).total_seconds() >= Settings()[
-                            "session_duration"]:
+                    if ((datetime.datetime.now() - current_session.opening_time).total_seconds()
+                            >= Settings()["session_duration"] or
+                            current_session.amount_of_questions >= Settings()["amount_of_questions"]):
+
                         current_session.session_state = SessionState.CLOSE.value
 
                         session_info = SessionInfo(user.auth_id, SessionState.CLOSE.value)
@@ -365,6 +364,7 @@ def handling_button_answers(call: CallbackQuery):
                 bot.send_message(call.from_user.id, "Извините, произошли технические шоколадки")
                 bot.send_sticker(call.from_user.id, stickers["wrong_answer"])
             user_answer = Button(button_id, call.message.id)
+            logging.debug(f"user_answer: {user_answer.type}, {user_answer.__dict__}")
             webhook = Webhook(user_answer, session_info)
             response = webhook.post(webhook_from_db)
             if response:

@@ -1,6 +1,7 @@
 import datetime
 
 from wtforms.fields import StringField, SelectMultipleField, TimeField, SubmitField
+from wtforms.fields.numeric import IntegerField
 from wtforms.validators import DataRequired, ValidationError
 
 from ._ext import BasePrefixedForm
@@ -46,6 +47,9 @@ class TimeDeltaField(StringField):
 
 class TelegramSettingsForm(BasePrefixedForm):
     tg_pin = StringField("Telegram auth pin")
+
+    session_duration = TimeDeltaField("Session duration")
+    max_interactions = IntegerField("Max amount of interactions")
 
     save_tg = SubmitField("Save")
 

@@ -216,7 +216,9 @@ def settings_page():
     tg_settings = TgSettingsDAO.get_settings()
 
     create_group_form = CreateGroupForm()
-    tg_settings_form = TelegramSettingsForm(tg_pin=tg_settings.pin)
+    tg_settings_form = TelegramSettingsForm(tg_pin=tg_settings.pin,
+                                            session_duration=tg_settings.session_duration,
+                                            max_interactions=tg_settings.max_interactions)
     schedule_settings_form = ScheduleSettingsForm(time_period=q_settings.time_period, week_days=q_settings.week_days,
                                                   from_time=q_settings.from_time, to_time=q_settings.to_time)
 
@@ -228,7 +230,9 @@ def settings_page():
         return redirect("/settings")
 
     if tg_settings_form.save_tg.data and tg_settings_form.validate():
-        settings = TgSettings(tg_settings_form.tg_pin.data)
+        settings = TgSettings(tg_settings_form.tg_pin.data,
+                              tg_settings_form.session_duration.data,
+                              tg_settings_form.max_interactions.data)
 
         TgSettingsDAO.update_settings(settings)
         return redirect("/settings")
