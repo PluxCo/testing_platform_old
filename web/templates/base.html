@@ -10,8 +10,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet"
           integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9"
           crossorigin="anonymous">
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.14.0-beta2/css/bootstrap-select.min.css"
           integrity="sha512-mR/b5Y7FRsKqrYZou7uysnOdCIJib/7r5QeJMFvLNHNhtye3xJp1TdJVPLtetkukFn227nKpXD9OjUc09lx97Q=="
@@ -47,36 +46,39 @@
                     <a class="nav-link" href="/questions">Add question</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="/answers">Answers history</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="/settings">Settings</a>
                 </li>
             </ul>
-            {% if current_user.is_authenticated %}
-                <div class="ms-auto nav navbar-nav nav-item">
-                    <a class="nav-link" href="/logout">Logout</a>
-                </div>
-            {% endif %}
+            <div class="ms-auto nav navbar-nav nav-item">
+                <a class="nav-link" href="/logout">Logout</a>
+            </div>
             <li class="navbar-nav nav-item dropdown">
-            <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false" data-bs-toggle="dropdown" data-bs-display="static">
-              <i class="bi bi-circle-half"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" style="min-width: 1rem;" aria-labelledby="bd-theme-text">
-              <li>
-                <button type="button" class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
-                  <i class="bi bi-brightness-high"></i>
+                <button class="btn btn-link nav-link dropdown-toggle" id="bd-theme" type="button" aria-expanded="false"
+                        data-bs-toggle="dropdown" data-bs-display="static">
+                    <i class="bi bi-circle-half"></i>
                 </button>
-              </li>
-              <li>
-                <button type="button" class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
-                  <i class="bi bi-moon"></i>
-                </button>
-              </li>
-              <li>
-                <button type="button" class="dropdown-item active" data-bs-theme-value="auto" aria-pressed="true">
-                  <i class="bi bi-circle-half"></i>
-                </button>
-              </li>
-            </ul>
-          </li>
+                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 1rem;" aria-labelledby="bd-theme-text">
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-theme-value="light" aria-pressed="false">
+                            <i class="bi bi-brightness-high"></i>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item" data-bs-theme-value="dark" aria-pressed="false">
+                            <i class="bi bi-moon"></i>
+                        </button>
+                    </li>
+                    <li>
+                        <button type="button" class="dropdown-item active" data-bs-theme-value="auto"
+                                aria-pressed="true">
+                            <i class="bi bi-circle-half"></i>
+                        </button>
+                    </li>
+                </ul>
+            </li>
         </div>
     </div>
 </nav>

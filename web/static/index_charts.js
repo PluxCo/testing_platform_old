@@ -4,14 +4,13 @@ socket.on('connect', function () {
     socket.emit('index_connected');
 });
 
-socket.on('peopleList', function (json_data) {
+socket.on('peopleList', function (data) {
     let items = document.getElementsByClassName('placeholder-glow');
     Array.from(items).forEach(function (item) {
         item.remove();
     });
 
     let list = document.getElementById('PeopleList');
-    let data = JSON.parse(json_data)
     let textSecondary = ""
     if (data.person.is_paused) {
         textSecondary += "\"text-secondary\""
@@ -132,15 +131,5 @@ const bubble_chart = new Chart(
 
 bubble_chart_canvas.ondblclick = (evt) => {
     bubble_chart.resetZoom();
-};
-
-bubble_chart_canvas.onclick = (evt) => {
-    const res = bubble_chart.getElementsAtEventForMode(evt, 'nearest', {intersect: true}, true);
-
-    if (res.length === 0) {
-        return;
-    }
-
-    window.location.href = "/statistic/" + bubble_chart.data.datasets[res[0].datasetIndex].data[res[0].index].y;
 };
 

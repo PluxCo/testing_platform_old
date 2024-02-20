@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 
 {% block prescripts %}
-    <script src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
     <script>
         config = {
             timeline: {{ timeline | tojson | safe }},
-            bar_data: {{ bar_data | safe }}
+            bar_data: {{ bar_data | tojson }}
         }
     </script>
-    <script type="module" src="{{ url_for('static', filename='charts.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='statistic_ext.js') }}"></script>
 {% endblock %}
 
 {% block content %}
@@ -35,6 +34,7 @@
                             <thead>
                             <tr class="sticky-top">
                                 <th>Person answer</th>
+                                <th>Points</th>
                                 <th>Ask time</th>
                                 <th>Answer time</th>
                             </tr>
@@ -124,51 +124,34 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm">
-                <div class="chart-container">
-                    <canvas id="Timeline"></canvas>
-                </div>
-            </div>
+            {#            <div class="col-sm">#}
+            {#                <div class="chart-container">#}
+            {#                    <canvas id="Timeline"></canvas>#}
+            {#                </div>#}
+            {#            </div>#}
         </div>
         <div class="row table-responsive rounded mb-3 ms-5" id="timeline">
             <table class="table m-0 table-bordered">
-                <tr class="d-flex">
-                    {% for answer in person.answers|reverse %}
-                        {% if answer.state == AnswerState.ANSWERED and answer.person_answer == answer.question.answer %}
-                            {% set a_bg = "table-success" %}
-                            {% set a_label = "Correct" %}
-                        {% elif answer.state == AnswerState.ANSWERED and answer.person_answer != answer.question.answer %}
-                            {% set a_bg = "table-warning" %}
-                            {% set a_label = "Incorrect" %}
-                        {% elif answer.state == AnswerState.TRANSFERRED %}
-                            {% set a_bg = "table-info" %}
-                            {% set a_label = "Skipped" %}
-                        {% elif answer.state == AnswerState.NOT_ANSWERED %}
-                            {% set a_bg = "table-secondary" %}
-                            {% set a_label = "Planned" %}
-                        {% endif %}
+                <tr class="d-flex" id="answers-timeline">
 
-                        <td class="text-center {{ a_bg }} question_stat" data-question="{{ answer.question.id }}">
-                        </td>
-                    {% endfor %}
                 </tr>
             </table>
         </div>
         <h3>Subjects</h3>
         <div class="row">
             <div class="accordion" id="groups_stat">
-                {% for name, correct, answered, all, answers in subjects %}
+                {% for s in subjects %}
                     <div class="accordion-item">
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed d-block" type="button"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#subj_{{ loop.index }}" aria-expanded="false"
                                     aria-controls="subj_{{ loop.index }}">
-                                <span>{{ name }}</span>
+                                <span>{{ s['name'] }}</span>
                                 <span class="float-end mx-5 fs-5">
-                                    <span class="text-success">{{ correct }}</span> /
-                                    <span class="text-info">{{ answered }}</span> /
-                                    <span class="text-secondary">{{ all }}</span>
+                                    <span class="text-success">{{ s['points'] }}</span> /
+                                    <span class="text-info">{{ s['answered_count'] }}</span> /
+                                    <span class="text-secondary">{{ s['questions_count'] }}</span>
                                 </span>
                             </button>
                         </h2>
@@ -178,27 +161,19 @@
                                 <table class="table align-middle">
                                     <caption>Last answers</caption>
                                     <tr>
-                                        {% for question, state, correct, incorrect in answers %}
-                                            <td class="text-center col-1">{{ question.text }}</td>
+                                        {% for q in s['questions'] %}
+                                            <td class="text-center col-1">{{ q["question"]["text"] }}</td>
                                         {% endfor %}
                                     </tr>
                                     <tr>
-                                        {% for question, state, q_correct, q_incorrect in answers %}
-                                            {% set td_ststus = "" %}
-                                            {% if state == "CORRECT" %}
-                                                {% set td_ststus = "table-success" %}
-                                            {% elif state == "INCORRECT" %}
-                                                {% set td_ststus = "table-warning" %}
-                                            {% elif state == "IGNORED" %}
-                                                {% set td_ststus = "table-info" %}
-                                            {% elif state == "NOT_ANSWERED" %}
-                                                {% set td_ststus = "table-secondary" %}
-                                            {% endif %}
-
-                                            <td class="text-center {{ td_ststus }} question_stat"
-                                                data-question="{{ question.id }}">
-                                                <span class="text-success">{{ q_correct }}</span> /
-                                                <span class="text-danger">{{ q_incorrect }}</span>
+                                        {% for q in s["questions"] %}
+                                            <td class="text-center question_stat"
+                                                data-question="{{ q['question']['id'] }}"
+                                                data-answered-count="{{ q["answered_count"] }}"
+                                                data-last-points="{{ q["last_points"] }}">
+                                                <span class="text-success">{{ q['total_points'] }}</span>
+                                                /
+                                                <span class="text-danger">{{ q["answered_count"] - q['total_points'] }}</span>
                                             </td>
                                         {% endfor %}
                                     </tr>

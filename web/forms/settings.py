@@ -1,12 +1,10 @@
 import datetime
 
-from wtforms.fields import StringField, SelectMultipleField, IntegerField, TimeField, SubmitField
+from wtforms.fields import StringField, SelectMultipleField, TimeField, SubmitField
+from wtforms.fields.numeric import IntegerField
 from wtforms.validators import DataRequired, ValidationError
-from wtforms.widgets import TextInput
 
 from ._ext import BasePrefixedForm
-
-from tools import WeekDays
 
 
 class TimeDeltaField(StringField):
@@ -50,18 +48,21 @@ class TimeDeltaField(StringField):
 class TelegramSettingsForm(BasePrefixedForm):
     tg_pin = StringField("Telegram auth pin")
 
+    session_duration = TimeDeltaField("Session duration")
+    max_interactions = IntegerField("Max amount of interactions")
+
     save_tg = SubmitField("Save")
 
 
 class ScheduleSettingsForm(BasePrefixedForm):
     time_period = TimeDeltaField("Period", validators=[DataRequired()])
-    week_days = SelectMultipleField("Week days", choices=[(WeekDays.Monday.value, "Monday"),
-                                                          (WeekDays.Tuesday.value, "Tuesday"),
-                                                          (WeekDays.Wednesday.value, "Wednesday"),
-                                                          (WeekDays.Thursday.value, "Thursday"),
-                                                          (WeekDays.Friday.value, "Friday"),
-                                                          (WeekDays.Saturday.value, "Saturday"),
-                                                          (WeekDays.Sunday.value, "Sunday")],
+    week_days = SelectMultipleField("Week days", choices=[(0, "Monday"),
+                                                          (1, "Tuesday"),
+                                                          (2, "Wednesday"),
+                                                          (3, "Thursday"),
+                                                          (4, "Friday"),
+                                                          (5, "Saturday"),
+                                                          (6, "Sunday")],
                                     coerce=int)
     from_time = TimeField("From", validators=[DataRequired()])
     to_time = TimeField("To", validators=[DataRequired()])
@@ -71,10 +72,3 @@ class ScheduleSettingsForm(BasePrefixedForm):
     def validate_time_period(self, field):
         if field.data.total_seconds() < 30:
             raise ValidationError("Time delta should be at least 30 seconds")
-
-
-class SessionSettingsForm(BasePrefixedForm):
-    max_time = TimeDeltaField("Session time", validators=[DataRequired()])
-    max_questions = IntegerField("Questions in the session", validators=[DataRequired()])
-
-    save_session_settings = SubmitField("Save")

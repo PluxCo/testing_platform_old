@@ -41,10 +41,10 @@
                                 {{ create_question_form.subject(class_="form-control", placeholder="Bash") }}
                             </div>
                             <div class="col-4 d-flex flex-column gap-1">
-                                {{ create_question_form.options.label(class_="form-label") }}
+                                {{ create_question_form.options.label(class_="form-label", id_="createquestionform-options-label") }}
                                 {{ create_question_form.options(class_="form-control h-100", placeholder="mkdir\ntouch\ncd\nls") }}
 
-                                {{ create_question_form.answer.label(class_="form-label") }}
+                                {{ create_question_form.answer.label(class_="form-label", id_="createquestionform-answer-label") }}
                                 {{ create_question_form.answer(class_="form-control") }}
                             </div>
                             <div class="col-4 d-flex flex-column gap-1">
@@ -55,9 +55,14 @@
                                 {{ create_question_form.level(class_="form-control") }}
 
                                 {{ create_question_form.article.label(class_="form-label") }}
-                                {{ create_question_form.article(class_="form-control", placeholder="https://github.com/") }}
+                                {{ create_question_form.article(class_="form-control checkbox", placeholder="https://github.com/") }}
 
                             </div>
+                            <div class="col-3 d-flex flex-column mt-3">
+                                <p> {{ create_question_form.is_open(class_="form-check-input") }} {{ create_question_form.is_open.label(class_="form-check-label") }}
+                                </p>
+                            </div>
+
                         </div>
                         {% for field, error in create_question_form.errors.items() %}
                             <div class="alert alert-warning mt-3">
@@ -105,18 +110,6 @@
         </div>
 
         <div class="row mb-5 mt-5">
-            <div class="col mb-2">
-                <button id="delete_button" class="btn btn-outline-danger" data-bs-toggle="modal"
-                        data-bs-target="#deleteModal" disabled="">
-                    Delete
-                    <i class="bi bi-trash" style="font-size: 1rem; color: currentColor;"></i>
-                </button>
-                <button id="edit_button" class="btn btn-outline-primary" data-bs-toggle="modal"
-                        data-bs-target="#editModal" disabled="">
-                    Edit
-                    <i class="bi bi-pencil-square" style="font-size: 1rem; color: currentColor;"></i>
-                </button>
-            </div>
             <div class="modal fade" id="deleteModal" tabindex="-1"
                  aria-hidden="true">
                 <div class="modal-dialog">
@@ -205,6 +198,7 @@
                     <th scope="col">Groups</th>
                     <th scope="col">Difficulty</th>
                     <th scope="col">Article</th>
+                    <th scope="col"></th>
                 </tr>
                 </thead>
                 <tbody>

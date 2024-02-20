@@ -5,7 +5,8 @@
         <h1>Settings</h1>
         <div class="row">
             <div class="col col-md-2">
-                <div class="nav flex-column nav-pills me-3" id="v-pills-settings-tab" role="tablist" aria-orientation="vertical">
+                <div class="nav flex-column nav-pills me-3" id="v-pills-settings-tab" role="tablist"
+                     aria-orientation="vertical">
                     <button class="nav-link active" id="v-pills-groups-tab" data-bs-toggle="pill"
                             data-bs-target="#v-pills-groups" type="button" role="tab" aria-controls="v-pills-groups"
                             aria-selected="true">Groups
@@ -17,10 +18,6 @@
                     <button class="nav-link" id="v-pills-schedule-tab" data-bs-toggle="pill"
                             data-bs-target="#v-pills-schedule" type="button" role="tab" aria-controls="v-pills-schedule"
                             aria-selected="false">Schedule
-                    </button>
-                    <button class="nav-link" id="v-pills-session-tab" data-bs-toggle="pill"
-                            data-bs-target="#v-pills-session" type="button" role="tab" aria-controls="v-pills-session"
-                            aria-selected="false">Session
                     </button>
                 </div>
             </div>
@@ -41,8 +38,8 @@
                                     <tbody>
                                     {% for g in groups %}
                                         <tr>
-                                            <th scope="col">{{ g.id }}</th>
-                                            <th scope="col">{{ g.name }}</th>
+                                            <th scope="col">{{ loop.index }}</th>
+                                            <th scope="col">{{ g.label }}</th>
                                         </tr>
                                     {% endfor %}
                                     </tbody>
@@ -75,6 +72,15 @@
                                 <div class="mb-3">
                                     {{ tg_settings_form.tg_pin.label(class_="form-label") }}
                                     {{ tg_settings_form.tg_pin(class_="form-control") }}
+                                </div>
+                                <h4 class="mt-5 mb-3">Session settings</h4>
+                                <div class="mb-3">
+                                    {{ tg_settings_form.session_duration.label(class_="form-label") }}
+                                    {{ tg_settings_form.session_duration(class_="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ tg_settings_form.max_interactions.label(class_="form-label") }}
+                                    {{ tg_settings_form.max_interactions(class_="form-control") }}
                                 </div>
                                 {% for field, error in tg_settings_form.errors.items() %}
                                     <div class="alert alert-warning">
@@ -114,30 +120,6 @@
                                     </div>
                                 {% endfor %}
                                 {{ schedule_settings_form.save_schedule(class_="btn btn-success float-end") }}
-                            </form>
-                        </div>
-                    </div>
-                    <div class="tab-pane fade" id="v-pills-session" role="tabpanel"
-                         aria-labelledby="v-pills-session-tab"
-                         tabindex="0">
-                        <div class="row">
-                            <h3>Session</h3>
-                            <form method="POST" action="">
-                                {{ session_settings_form.csrf_token }}
-                                <div class="mb-3">
-                                    {{ session_settings_form.max_time.label(class_="form-label") }}
-                                    {{ session_settings_form.max_time(class_="form-control") }}
-                                </div>
-                                <div class="mb-3">
-                                    {{ session_settings_form.max_questions.label(class_="form-label") }}
-                                    {{ session_settings_form.max_questions(class_="form-control") }}
-                                </div>
-                                {% for field, error in session_settings_form.errors.items() %}
-                                    <div class="alert alert-warning">
-                                        {{ "\n".join(error) }}
-                                    </div>
-                                {% endfor %}
-                                {{ session_settings_form.save_session_settings(class_="btn btn-success float-end") }}
                             </form>
                         </div>
                     </div>
